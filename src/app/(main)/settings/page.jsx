@@ -28,7 +28,7 @@ import {
   Volume2,
   Navigation,
   Users,
-  Scale
+  Scale,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -85,27 +85,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#080d12] text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300">
-      {/* ========================================================= */}
-      {/* TOAST                                                      */}
-      {/* ========================================================= */}
-
-      {toastMessage && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs shadow-2xl flex items-center gap-2 border border-emerald-500/30">
-          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* MAIN CONTENT                                               */}
-      {/* ========================================================= */}
-
       <main className="w-full p-4 sm:p-6 lg:p-8 space-y-6">
-        {/* ======================================================= */}
-        {/* PAGE HEADER                                             */}
-        {/* ======================================================= */}
-
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold mb-1.5">
@@ -133,10 +113,6 @@ export default function SettingsPage() {
             Save Changes
           </button>
         </div>
-
-        {/* ======================================================= */}
-        {/* ACCOUNT INFORMATION                                     */}
-        {/* ======================================================= */}
 
         <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md overflow-hidden">
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
@@ -199,10 +175,6 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
-
-        {/* ======================================================= */}
-        {/* PROCUREMENT PREFERENCES                                 */}
-        {/* ======================================================= */}
 
         <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
@@ -301,10 +273,6 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ======================================================= */}
-        {/* BOOKING PREFERENCES                                    */}
-        {/* ======================================================= */}
-
         <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
             <SettingHeader
@@ -336,7 +304,7 @@ export default function SettingsPage() {
               title="Appointment Reminder"
               description="Remind me before my scheduled procurement slot"
               enabled={true}
-              onToggle={() => {}}
+              onToggle={() => { }}
             />
 
             <PreferenceRow
@@ -353,10 +321,6 @@ export default function SettingsPage() {
             />
           </div>
         </section>
-
-        {/* ======================================================= */}
-        {/* NOTIFICATIONS                                           */}
-        {/* ======================================================= */}
 
         <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
@@ -418,10 +382,6 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ======================================================= */}
-        {/* LANGUAGE & APPEARANCE                                   */}
-        {/* ======================================================= */}
-
         <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
             <SettingHeader
@@ -482,10 +442,6 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ======================================================= */}
-        {/* PRIVACY & SECURITY                                      */}
-        {/* ======================================================= */}
-
         <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
             <SettingHeader
@@ -535,10 +491,6 @@ export default function SettingsPage() {
             </button>
           </div>
         </section>
-
-        {/* ======================================================= */}
-        {/* BANK & PAYMENT                                         */}
-        {/* ======================================================= */}
 
         <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
@@ -590,10 +542,6 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ======================================================= */}
-        {/* HELP & SUPPORT                                          */}
-        {/* ======================================================= */}
-
         <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
             <SettingHeader
@@ -627,10 +575,6 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ======================================================= */}
-        {/* ACCOUNT ACTIONS                                         */}
-        {/* ======================================================= */}
-
         <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
           <div className="p-5 sm:p-6">
             <div className="flex flex-col sm:flex-row gap-3">
@@ -655,15 +599,11 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ======================================================= */}
-        {/* SAVE BUTTON                                             */}
-        {/* ======================================================= */}
-
         <div className="flex justify-end pb-4">
           <button
             type="button"
             onClick={handleSave}
-            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-lime-600 text-white font-black text-xs shadow-md shadow-emerald-600/25 hover:shadow-emerald-500/40 transition-all flex items-center gap-2"
+            className="px-6 py-3 rounded-2xl bg-linear-to-r from-emerald-600 via-teal-600 to-lime-600 text-white font-black text-xs shadow-md shadow-emerald-600/25 hover:shadow-emerald-500/40 transition-all flex items-center gap-2"
           >
             <Save className="w-4 h-4" />
             Save All Settings
@@ -673,10 +613,6 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-/* =============================================================== */
-/* REUSABLE COMPONENTS                                             */
-/* =============================================================== */
 
 function SettingHeader({ icon: Icon, title, description }) {
   return (
@@ -761,14 +697,12 @@ function PreferenceRow({ icon: Icon, title, description, enabled, onToggle }) {
         type="button"
         onClick={onToggle}
         aria-label={`Toggle ${title}`}
-        className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${
-          enabled ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"
-        }`}
+        className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${enabled ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"
+          }`}
       >
         <span
-          className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
-            enabled ? "translate-x-6" : "translate-x-1"
-          }`}
+          className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${enabled ? "translate-x-6" : "translate-x-1"
+            }`}
         />
       </button>
     </div>
