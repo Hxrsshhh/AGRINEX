@@ -25,32 +25,32 @@ import {
 const menuItems = [
   {
     name: "Dashboard",
-    href: "/dashboard",
+    href: "/farmer/dashboard",
     icon: LayoutDashboard,
   },
   {
     name: "Bookings",
-    href: "/bookings",
+    href: "/farmer/book-slot",
     icon: Calendar,
   },
   {
     name: "Queue",
-    href: "/queue",
+    href: "/farmer/queue",
     icon: Users,
   },
   {
     name: "Procurement",
-    href: "/procurement",
+    href: "/farmer/procurement",
     icon: Scale,
   },
   {
     name: "Payments",
-    href: "/payments",
+    href: "/farmer/payments",
     icon: DollarSign,
   },
   {
     name: "Notifications",
-    href: "/notifications",
+    href: "/farmer/notifications",
     icon: Bell,
     badge: "2",
   },
@@ -63,17 +63,17 @@ const menuItems = [
 const accountItems = [
   {
     name: "Profile",
-    href: "/profile",
+    href: "/farmer/profile",
     icon: User,
   },
   {
     name: "Settings",
-    href: "/settings",
+    href: "/farmer/settings",
     icon: Settings,
   },
   {
     name: "Help & Support",
-    href: "/help",
+    href: "/farmer/help",
     icon: HelpCircle,
   },
 ];
@@ -90,7 +90,7 @@ export default function Sidebar({ open, onClose }) {
   ------------------------------------------------------- */
 
   const isActive = (href) => {
-    if (href === "/dashboard") {
+    if (href === "/farmer/dashboard") {
       return pathname === href;
     }
 

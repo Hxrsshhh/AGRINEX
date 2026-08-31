@@ -112,7 +112,7 @@ export default function Navbar({ onMenuClick }) {
           {/* Logo */}
 
           <Link
-            href="/farmer/dashboard"
+            href="/"
             className="
               flex
               items-center

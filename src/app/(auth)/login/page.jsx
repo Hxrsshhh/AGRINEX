@@ -333,7 +333,8 @@ function AuthContent() {
           }}
         />
       </div>
-
+      
+      {/* //header */}
       <header
         className="
           absolute
