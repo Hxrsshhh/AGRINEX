@@ -27,6 +27,7 @@ import {
   Info,
 } from "lucide-react";
 import Link from "next/link";
+import { signIn,signOut } from "next-auth/react";
 
 const fadeUp = {
   hidden: {
@@ -202,8 +203,7 @@ function AuthContent() {
 
     return Object.keys(newErrors).length === 0;
   };
-
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!validate()) {
@@ -211,29 +211,115 @@ function AuthContent() {
     }
 
     setIsLoading(true);
+    setErrors({});
 
-    /* FORGOT PASSWORD */
+    try {
+      // ========================================
+      // LOGIN ONLY
+      // ========================================
 
-    if (authMode === "forgot") {
-      setTimeout(() => {
-        setIsLoading(false);
-        setResetSent(true);
-      }, 900);
+      const result = await signIn("credentials", {
+        identifier: formData.identifier.trim(),
+        password: formData.password,
+        redirect: false,
+      });
 
-      return;
-    }
+      // ========================================
+      // LOGIN FAILED
+      // ========================================
 
-    /* AUTHENTICATION */
+      if (result?.error) {
+        throw new Error(
+          result.error === "CredentialsSignin"
+            ? "Invalid mobile/email or password"
+            : result.error
+        );
+      }
 
-    setTimeout(() => {
-      setIsLoading(false);
+      // ========================================
+      // GET CURRENT SESSION
+      // ========================================
+
+      const sessionResponse = await fetch(
+        "/api/auth/session"
+      );
+
+      const session = await sessionResponse.json();
+
+      if (!session?.user) {
+        throw new Error(
+          "Unable to retrieve user session"
+        );
+      }
+
+      // ========================================
+      // ROLE CHECK
+      // ========================================
+
+      const selectedRole =
+        role === "officer"
+          ? "OFFICER"
+          : "FARMER";
+
+      if (session.user.role !== selectedRole) {
+        await signOut({
+          redirect: false,
+        });
+
+        throw new Error(
+          `This account is registered as ${session.user.role.toLowerCase()}, not ${selectedRole.toLowerCase()}`
+        );
+      }
+
+      // ========================================
+      // ACCOUNT STATUS CHECK
+      // ========================================
+
+      if (!session.user.isActive) {
+        await signOut({
+          redirect: false,
+        });
+
+        throw new Error(
+          "Your account has been disabled"
+        );
+      }
+
+      // ========================================
+      // SUCCESS
+      // ========================================
+
       setAuthSuccess(true);
 
       setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 1300);
-    }, 1000);
+        if (session.user.role === "FARMER") {
+          window.location.href =
+            "/farmer/dashboard";
+        } else if (
+          session.user.role === "OFFICER"
+        ) {
+          window.location.href =
+            "/officer/dashboard";
+        } else if (
+          session.user.role === "ADMIN"
+        ) {
+          window.location.href =
+            "/admin/dashboard";
+        }
+      }, 1200);
+    } catch (error) {
+      console.error("LOGIN ERROR:", error);
+
+      setErrors({
+        general:
+          error.message ||
+          "Something went wrong. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
 
   const changeMode = (mode) => {
     setAuthMode(mode);
@@ -333,7 +419,7 @@ function AuthContent() {
           }}
         />
       </div>
-      
+
       {/* //header */}
       <header
         className="

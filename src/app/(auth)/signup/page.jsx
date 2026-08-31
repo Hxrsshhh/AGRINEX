@@ -24,6 +24,7 @@ import {
   Check,
 } from "lucide-react";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 
 const fadeUp = {
   hidden: {
@@ -96,6 +97,9 @@ function SignupContent() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [signupSuccess, setSignupSuccess] = useState(false);
+
+  const [registrationUserId, setRegistrationUserId] =
+    useState(null);
 
   const [errors, setErrors] = useState({});
   const passwordStrength = useMemo(() => {
@@ -292,38 +296,192 @@ function SignupContent() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (!validateStep(currentStep)) {
-      return;
-    }
-
-    setCurrentStep((previous) => Math.min(3, previous + 1));
-  };
-
   const handleBack = () => {
     setErrors({});
 
     setCurrentStep((previous) => Math.max(1, previous - 1));
   };
 
-  const handleSubmit = (event) => {
+  const handleNext = async () => {
+    if (!validateStep(currentStep)) {
+      return;
+    }
+
+    // ==============================
+    // STEP 1 → STEP 2
+    // ==============================
+
+    if (currentStep === 1) {
+      setCurrentStep(2);
+      return;
+    }
+
+    // ==============================
+    // STEP 2 → REGISTER → STEP 3
+    // ==============================
+
+    if (currentStep === 2) {
+      setIsLoading(true);
+      setErrors({});
+
+      try {
+        const response = await fetch(
+          "/api/auth/register",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify({
+              fullName: formData.fullName,
+              mobileNumber:
+                formData.mobileNumber,
+              email: formData.email,
+
+              password: formData.password,
+              confirmPassword:
+                formData.confirmPassword,
+
+              state: formData.state,
+              district: formData.district,
+              village: formData.village,
+              pincode: formData.pincode,
+
+              landArea: formData.landArea,
+              landUnit: formData.landUnit,
+              mainCrop: formData.mainCrop,
+
+              preferredLanguage:
+                formData.preferredLanguage,
+
+              notifications:
+                formData.notifications,
+            }),
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+            "Unable to create account"
+          );
+        }
+
+        // IMPORTANT
+        setRegistrationUserId(
+          data.userId
+        );
+
+        console.log(
+          "AGRINEX OTP:",
+          data.otp
+        );
+
+        setCurrentStep(3);
+      } catch (error) {
+        console.error(
+          "REGISTRATION ERROR:",
+          error
+        );
+
+        setErrors({
+          general:
+            error.message ||
+            "Unable to create account",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!validateStep(3)) {
       return;
     }
 
-    setIsLoading(true);
+    if (!registrationUserId) {
+      setErrors({
+        general:
+          "Registration session not found. Please restart.",
+      });
 
-    setTimeout(() => {
-      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setErrors({});
+
+    try {
+      const otp = formData.otp.join("");
+
+      const response = await fetch(
+        "/api/auth/register/verify-otp",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            userId: registrationUserId,
+            mobileNumber:
+              formData.mobileNumber,
+            otp,
+
+            termsAccepted:
+              formData.termsAccepted,
+
+            privacyAccepted:
+              formData.privacyAccepted,
+          }),
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          "OTP verification failed"
+        );
+      }
+
+      // ==================================
+      // REGISTRATION COMPLETE
+      // ==================================
+
       setSignupSuccess(true);
 
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        window.location.href = "/signin";
       }, 1400);
-    }, 1000);
+    } catch (error) {
+      console.error(
+        "OTP VERIFICATION ERROR:",
+        error
+      );
+
+      setErrors({
+        otp:
+          error.message ||
+          "Unable to verify OTP",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+
   if (signupSuccess) {
     return (
       <div className="fixed inset-0 w-screen h-screen overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-[#080d12] px-4">

@@ -183,7 +183,7 @@ const Navbar = () => {
             </button>
 
             <Link
-              href="/login"
+              href="/signin"
               className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-emerald-500 transition-colors"
             >
               Login
@@ -259,7 +259,7 @@ const Navbar = () => {
 
               <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2">
                 <Link
-                  href="/login"
+                  href="/signin"
                   className="py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-center text-xs font-black"
                 >
                   Login
@@ -1406,7 +1406,7 @@ const FinalCTA = () => {
               </Link>
 
               <Link
-                href="/login"
+                href="/signin"
                 className="px-7 py-3.5 rounded-2xl bg-white/10 border border-white/20 text-white text-sm font-black hover:bg-white/15 transition-colors"
               >
                 Login
@@ -1513,12 +1513,12 @@ const Footer = () => {
               <ul className="mt-5 space-y-3">
                 {column.links.map(([name, href]) => (
                   <li key={name}>
-                    <a
+                    <Link
                       href={href}
                       className="text-xs text-slate-500 dark:text-slate-400 hover:text-emerald-500 transition-colors"
                     >
                       {name}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
