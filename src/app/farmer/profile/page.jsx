@@ -325,7 +325,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen w-full bg-slate-50 dark:bg-[#080d12] text-slate-900 dark:text-slate-100 transition-colors duration-300">
       {toast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[1000]">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-1000">
           <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-2xl">
             <CheckCircle2 className="w-4 h-4" />
             {toast}
@@ -545,7 +545,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
-                <button type="button" onClick={() => router.push("/farmer/onboarding")} className="w-full mt-2 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-lime-600 text-white text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5 transition-all">
+                <button type="button" onClick={() => router.push("/onboarding")} className="w-full mt-2 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-lime-600 text-white text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5 transition-all">
                   <Sprout className="w-4 h-4" />
                   Complete Onboarding
                   <span className="text-sm">→</span>
