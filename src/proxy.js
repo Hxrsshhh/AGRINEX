@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
+const DASHBOARDS = {
+  FARMER: "/farmer/dashboard",
+  OFFICER: "/officer/dashboard",
+  ADMIN: "/admin/dashboard",
+};
+
+const matchPath = (pathname, base) =>
+  pathname === base || pathname.startsWith(`${base}/`);
+
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
-
-  // ==========================================
-  // 1. SKIP STATIC / INTERNAL ROUTES
-  // ==========================================
 
   if (
     pathname.startsWith("/_next") ||
@@ -16,168 +21,56 @@ export async function proxy(request) {
     return NextResponse.next();
   }
 
-  // ==========================================
-  // 2. GET NEXTAUTH TOKEN
-  // ==========================================
-
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  // ==========================================
-  // 3. PUBLIC ROUTES
-  // ==========================================
+  const role = token?.role;
+  const getUrl = (path) => new URL(path, request.url);
+  const fallbackRedirect = getUrl(DASHBOARDS[role] || "/signin");
 
-  const publicPaths = [
-    "/",
-    "/signin",
-    "/signup",
-    "/auth/error",
-    "/helpdesk",
-  ];
-
-  const isPublicPath = publicPaths.some(
-    (path) =>
-      pathname === path ||
-      pathname.startsWith(`${path}/`)
+  const publicPaths = ["/", "/signin", "/signup", "/auth/error"];
+  const isPublicPath = publicPaths.some((path) =>
+    matchPath(pathname, path)
   );
 
-  // ==========================================
-  // 4. NOT LOGGED IN
-  // ==========================================
-
-  if (!token && !isPublicPath) {
-    return NextResponse.redirect(
-      new URL("/signin", request.url)
-    );
+  if (!token) {
+    return isPublicPath
+      ? NextResponse.next()
+      : NextResponse.redirect(getUrl("/signin"));
   }
 
-  // ==========================================
-  // 5. LOGGED IN USER
-  // ==========================================
+  if (pathname === "/signin" || pathname === "/signup") {
+    return NextResponse.redirect(fallbackRedirect);
+  }
 
-  if (token) {
-    const role = token.role;
+  if (matchPath(pathname, "/farmer")) {
+    return role === "FARMER"
+      ? NextResponse.next()
+      : NextResponse.redirect(fallbackRedirect);
+  }
 
-    // ------------------------------------------
-    // AUTH PAGES
-    // ------------------------------------------
+  if (matchPath(pathname, "/officer")) {
+    return role === "OFFICER" || role === "ADMIN"
+      ? NextResponse.next()
+      : NextResponse.redirect(fallbackRedirect);
+  }
 
-    if (
-      pathname === "/signin" ||
-      pathname === "/signup"
-    ) {
-      if (role === "FARMER") {
-        return NextResponse.redirect(
-          new URL("/farmer/dashboard", request.url)
-        );
-      }
+  if (matchPath(pathname, "/admin")) {
+    return role === "ADMIN"
+      ? NextResponse.next()
+      : NextResponse.redirect(fallbackRedirect);
+  }
 
-      if (role === "OFFICER") {
-        return NextResponse.redirect(
-          new URL("/officer/dashboard", request.url)
-        );
-      }
-
-      if (role === "ADMIN") {
-        return NextResponse.redirect(
-          new URL("/admin/dashboard", request.url)
-        );
-      }
-    }
-
-    // ------------------------------------------
-    // FARMER ACCESS
-    // ------------------------------------------
-
-    if (pathname.startsWith("/farmer")) {
-      if (role !== "FARMER") {
-        if (role === "OFFICER") {
-          return NextResponse.redirect(
-            new URL(
-              "/officer/dashboard",
-              request.url
-            )
-          );
-        }
-
-        if (role === "ADMIN") {
-          return NextResponse.redirect(
-            new URL(
-              "/admin/dashboard",
-              request.url
-            )
-          );
-        }
-
-        return NextResponse.redirect(
-          new URL("/signin", request.url)
-        );
-      }
-    }
-
-    // ------------------------------------------
-    // OFFICER ACCESS
-    // ------------------------------------------
-
-    if (pathname.startsWith("/officer")) {
-      if (
-        role !== "OFFICER" &&
-        role !== "ADMIN"
-      ) {
-        if (role === "FARMER") {
-          return NextResponse.redirect(
-            new URL(
-              "/farmer/dashboard",
-              request.url
-            )
-          );
-        }
-
-        return NextResponse.redirect(
-          new URL("/signin", request.url)
-        );
-      }
-    }
-
-    // ------------------------------------------
-    // ADMIN ACCESS
-    // ------------------------------------------
-
-    if (pathname.startsWith("/admin")) {
-      if (role !== "ADMIN") {
-        if (role === "FARMER") {
-          return NextResponse.redirect(
-            new URL(
-              "/farmer/dashboard",
-              request.url
-            )
-          );
-        }
-
-        if (role === "OFFICER") {
-          return NextResponse.redirect(
-            new URL(
-              "/officer/dashboard",
-              request.url
-            )
-          );
-        }
-
-        return NextResponse.redirect(
-          new URL("/signin", request.url)
-        );
-      }
-    }
+  if (matchPath(pathname, "/onboarding")) {
+    return role === "FARMER"
+      ? NextResponse.next()
+      : NextResponse.redirect(fallbackRedirect);
   }
 
   return NextResponse.next();
 }
-
-// ==========================================
-// MATCHER
-// ==========================================
 
 export const config = {
   matcher: [

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import { useSession } from "next-auth/react";
 
 import {
   Sprout,
@@ -14,6 +15,7 @@ import {
 
 export default function Navbar({ onMenuClick }) {
   const { resolvedTheme, setTheme } = useTheme();
+  const { data: session, status } = useSession();
 
   const [mounted, setMounted] = useState(false);
 
@@ -28,6 +30,26 @@ export default function Navbar({ onMenuClick }) {
         : "dark"
     );
   };
+  const user = session?.user;
+
+  const userName =
+    user?.name?.trim() ||
+    "Farmer";
+  const firstName =
+    userName !== "Farmer"
+      ? userName.split(" ")[0]
+      : "Farmer";
+
+  const initials =
+    userName !== "Farmer"
+      ? userName
+          .split(" ")
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((word) => word[0])
+          .join("")
+          .toUpperCase()
+      : "F";
 
   return (
     <header
@@ -38,46 +60,35 @@ export default function Navbar({ onMenuClick }) {
         right-0
         z-[100]
         h-16
-
         bg-white/95
         dark:bg-[#0a1016]/95
-
         text-slate-900
         dark:text-slate-100
-
         backdrop-blur-xl
-
         border-b
         border-slate-200
         dark:border-slate-800
-
         shadow-sm
         dark:shadow-black/20
-
         transition-colors
         duration-300
       "
     >
-
       <div
         className="
           h-full
           px-4
           sm:px-6
-
           flex
           items-center
           justify-between
         "
       >
-
-        {/* =====================================================
-            LEFT SIDE
-        ====================================================== */}
+       
 
         <div className="flex items-center gap-3">
 
-          {/* Mobile Menu */}
+       
 
           <button
             type="button"
@@ -85,22 +96,16 @@ export default function Navbar({ onMenuClick }) {
             aria-label="Open navigation menu"
             className="
               lg:hidden
-
               p-2
               rounded-xl
-
               bg-slate-100
               dark:bg-slate-800
-
               text-slate-700
               dark:text-slate-200
-
               hover:bg-emerald-500/10
               dark:hover:bg-emerald-500/10
-
               hover:text-emerald-600
               dark:hover:text-emerald-400
-
               transition-all
               duration-200
             "
@@ -108,8 +113,6 @@ export default function Navbar({ onMenuClick }) {
             <Menu className="w-5 h-5" />
           </button>
 
-
-          {/* Logo */}
 
           <Link
             href="/"
@@ -121,45 +124,36 @@ export default function Navbar({ onMenuClick }) {
             "
           >
 
-            {/* Logo Icon */}
+          
 
             <div
               className="
                 w-9
                 h-9
                 rounded-xl
-
                 bg-gradient-to-br
                 from-emerald-500
                 to-lime-500
-
                 p-[2px]
-
                 shadow-md
                 shadow-emerald-500/20
-
                 group-hover:scale-105
-
                 transition-transform
                 duration-200
               "
             >
-
               <div
                 className="
                   w-full
                   h-full
                   rounded-[10px]
-
                   bg-slate-950
                   dark:bg-[#060b10]
-
                   flex
                   items-center
                   justify-center
                 "
               >
-
                 <Sprout
                   className="
                     w-5
@@ -167,22 +161,17 @@ export default function Navbar({ onMenuClick }) {
                     text-emerald-400
                   "
                 />
-
               </div>
-
             </div>
 
-
-            {/* Brand */}
+          
 
             <div className="hidden sm:block">
-
               <div
                 className="
                   text-lg
                   font-black
                   tracking-tight
-
                   text-slate-900
                   dark:text-white
                 "
@@ -202,24 +191,15 @@ export default function Navbar({ onMenuClick }) {
                 className="
                   text-[9px]
                   font-medium
-
                   text-slate-400
                   dark:text-slate-500
                 "
               >
                 Smart Procurement
               </p>
-
             </div>
-
           </Link>
-
         </div>
-
-
-        {/* =====================================================
-            RIGHT SIDE
-        ====================================================== */}
 
         <div
           className="
@@ -230,62 +210,41 @@ export default function Navbar({ onMenuClick }) {
           "
         >
 
-          {/* ===================================================
-              NOTIFICATIONS
-          ==================================================== */}
-
           <Link
             href="/farmer/notifications"
             aria-label="Notifications"
             className="
               relative
-
               p-2.5
               rounded-xl
-
               text-slate-600
               dark:text-slate-300
-
               hover:bg-slate-100
               dark:hover:bg-slate-800
-
               hover:text-emerald-600
               dark:hover:text-emerald-400
-
               transition-all
               duration-200
             "
           >
-
             <Bell className="w-4 h-4" />
 
-            {/* Notification Badge */}
 
             <span
               className="
                 absolute
                 top-1.5
                 right-1.5
-
                 w-2
                 h-2
-
                 rounded-full
-
                 bg-emerald-500
-
                 ring-2
                 ring-white
                 dark:ring-[#0a1016]
               "
             />
-
           </Link>
-
-
-          {/* ===================================================
-              THEME TOGGLE
-          ==================================================== */}
 
           <button
             type="button"
@@ -294,26 +253,19 @@ export default function Navbar({ onMenuClick }) {
             className="
               hidden
               sm:flex
-
               p-2.5
               rounded-xl
-
               text-slate-600
               dark:text-slate-300
-
               bg-transparent
-
               hover:bg-slate-100
               dark:hover:bg-slate-800
-
               hover:text-emerald-600
               dark:hover:text-emerald-400
-
               transition-all
               duration-200
             "
           >
-
             {mounted ? (
               resolvedTheme === "dark" ? (
                 <Sun
@@ -343,95 +295,82 @@ export default function Navbar({ onMenuClick }) {
                 "
               />
             )}
-
           </button>
-
-
-          {/* ===================================================
-              USER DISPLAY
-              No dropdown
-          ==================================================== */}
 
           <div
             className="
               flex
               items-center
               gap-2
-
               px-2
               py-1.5
-
               rounded-xl
-
               bg-slate-100
               dark:bg-slate-800
-
               text-slate-800
               dark:text-slate-100
-
               border
               border-transparent
               hover:border-slate-200
               dark:hover:border-slate-700
-
               transition-all
               duration-200
             "
           >
 
-            {/* Avatar */}
-
             <div
               className="
                 w-7
                 h-7
-
                 rounded-lg
-
                 bg-gradient-to-br
                 from-emerald-500
                 to-lime-500
-
                 flex
                 items-center
                 justify-center
-
                 text-white
-
                 text-[10px]
                 font-black
-
                 shadow-sm
                 shadow-emerald-500/20
+                overflow-hidden
               "
             >
-              RK
+              {user?.image ? (
+                <img
+                  src={user.image}
+                  alt={userName}
+                  className="
+                    w-full
+                    h-full
+                    object-cover
+                  "
+                />
+              ) : (
+                initials
+              )}
             </div>
-
-
-            {/* Name */}
 
             <span
               className="
                 hidden
                 sm:block
-
                 text-xs
                 font-bold
-
                 text-slate-800
                 dark:text-slate-100
+                max-w-[120px]
+                truncate
               "
             >
-              Rajesh
+              {status === "loading"
+                ? "Loading..."
+                : firstName}
             </span>
-
           </div>
-
         </div>
-
       </div>
-
     </header>
   );
 }

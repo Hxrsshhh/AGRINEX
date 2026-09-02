@@ -6,17 +6,23 @@ import User from "@/models/User";
 
 export async function POST(request) {
   try {
-    const {
-      identifier,
-      identifierType,
-    } = await request.json();
+    const { identifier, identifierType } = await request.json();
 
     if (!identifier) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Mobile number or email is required",
+          message: "Mobile number or email is required",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!["phone", "email"].includes(identifierType)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid identifier type",
         },
         { status: 400 }
       );
@@ -34,11 +40,13 @@ export async function POST(request) {
         ? { mobile: normalized }
         : { email: normalized };
 
+
+
     const user = await User.findOne(query).select(
       "+resetPasswordToken +resetPasswordExpires"
     );
 
-    // Don't reveal whether account exists
+
     if (!user) {
       return NextResponse.json({
         success: true,
@@ -47,9 +55,8 @@ export async function POST(request) {
       });
     }
 
-    const token = crypto
-      .randomBytes(32)
-      .toString("hex");
+
+    const token = crypto.randomBytes(32).toString("hex");
 
     const hashedToken = crypto
       .createHash("sha256")
@@ -58,37 +65,28 @@ export async function POST(request) {
 
     user.resetPasswordToken = hashedToken;
 
-    user.resetPasswordExpires =
-      new Date(Date.now() + 15 * 60 * 1000);
+    user.resetPasswordExpires = new Date(
+      Date.now() + 15 * 60 * 1000
+    );
 
     await user.save();
 
-    const resetUrl =
-      `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`;
+    const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`;
 
-    // Prototype testing
-    console.log(
-      "RESET PASSWORD URL:",
-      resetUrl
-    );
+    console.log("RESET PASSWORD URL:", resetUrl);
 
     return NextResponse.json({
       success: true,
-      message:
-        "Recovery instructions generated successfully",
+      message: "Recovery instructions generated successfully",
       resetUrl,
     });
   } catch (error) {
-    console.error(
-      "FORGOT PASSWORD ERROR:",
-      error
-    );
+    console.error("FORGOT PASSWORD ERROR:", error);
 
     return NextResponse.json(
       {
         success: false,
-        message:
-          "Unable to process recovery request",
+        message: "Unable to process recovery request",
       },
       { status: 500 }
     );

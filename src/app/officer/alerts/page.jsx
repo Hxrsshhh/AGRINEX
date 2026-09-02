@@ -21,10 +21,6 @@ import {
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-/* =========================================================
-   INITIAL NOTIFICATIONS
-========================================================= */
-
 const initialNotifications = [
   {
     id: "N001",

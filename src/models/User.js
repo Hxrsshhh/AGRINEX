@@ -1,10 +1,63 @@
 import mongoose from "mongoose";
 
+const documentSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ["IDENTITY_PROOF", "LAND_RECORD", "BANK_PROOF", "OTHER"],
+      required: true,
+    },
+
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    url: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    publicId: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
+    mimeType: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
+    size: {
+      type: Number,
+      default: null,
+    },
+
+    status: {
+      type: String,
+      enum: ["PENDING", "VERIFIED", "REJECTED"],
+      default: "PENDING",
+    },
+
+    uploadedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  {
+    _id: true,
+  },
+);
+
 const userSchema = new mongoose.Schema(
   {
-    // ==============================
+    // ============================================================
     // BASIC ACCOUNT DETAILS
-    // ==============================
+    // ============================================================
 
     name: {
       type: String,
@@ -12,6 +65,20 @@ const userSchema = new mongoose.Schema(
       trim: true,
       minlength: 2,
       maxlength: 100,
+    },
+
+    avatar: {
+      url: {
+        type: String,
+        default: null,
+        trim: true,
+      },
+
+      publicId: {
+        type: String,
+        default: null,
+        trim: true,
+      },
     },
 
     mobile: {
@@ -35,30 +102,63 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
-    // ==============================
+    // ============================================================
     // ROLE
-    // ==============================
+    // ============================================================
 
     role: {
       type: String,
       enum: ["FARMER", "OFFICER", "ADMIN"],
       required: true,
       default: "FARMER",
+      index: true,
     },
 
-    // ==============================
-    // VERIFICATION
-    // ==============================
+    // ============================================================
+    // FARMER VERIFICATION
+    // ============================================================
 
-    isVerified: {
-      type: Boolean,
-      default: false,
+    verification: {
+      isVerified: {
+        type: Boolean,
+        default: false,
+      },
+
+      isPhoneVerified: {
+        type: Boolean,
+        default: false,
+      },
+
+      verifiedAt: {
+        type: Date,
+        default: null,
+      },
+
+      verifiedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+
+      verifiedAtCentre: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "ProcurementCentre",
+        default: null,
+      },
     },
+
+    // ============================================================
+    // ACCOUNT STATUS
+    // ============================================================
 
     isActive: {
       type: Boolean,
       default: true,
     },
+
+    // ============================================================
+    // OTP AUTHENTICATION
+    // ============================================================
 
     otpCode: {
       type: String,
@@ -78,41 +178,66 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
-    // ==============================
-    // FARM LOCATION
-    // ==============================
+    // ============================================================
+    // ONBOARDING STATUS
+    // ============================================================
+
+    onboardingCompleted: {
+      type: Boolean,
+      default: false,
+    },
+
+    onboardingSkipped: {
+      type: Boolean,
+      default: false,
+    },
+
+    onboardingCompletedAt: {
+      type: Date,
+      default: null,
+    },
+
+    // ============================================================
+    // FARM LOCATION - FARMER
+    // OPTIONAL DURING REGISTRATION
+    // ============================================================
 
     farmLocation: {
       state: {
         type: String,
         trim: true,
+        default: null,
       },
 
       district: {
         type: String,
         trim: true,
+        default: null,
       },
 
       village: {
         type: String,
         trim: true,
+        default: null,
       },
 
       pincode: {
         type: String,
         trim: true,
         match: /^\d{6}$/,
+        default: null,
       },
     },
 
-    // ==============================
-    // FARM INFORMATION
-    // ==============================
+    // ============================================================
+    // FARM INFORMATION - FARMER
+    // ============================================================
 
     farm: {
       landArea: {
         type: Number,
         min: 0,
+        default: null,
       },
 
       landUnit: {
@@ -124,12 +249,63 @@ const userSchema = new mongoose.Schema(
       mainCrop: {
         type: String,
         trim: true,
+        default: null,
       },
     },
 
-    // ==============================
-    // PREFERENCES
-    // ==============================
+    // ============================================================
+    // PREFERRED PROCUREMENT CENTRE
+    // ============================================================
+
+    preferredCentre: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ProcurementCentre",
+      default: null,
+    },
+
+    // ============================================================
+    // FARMER DOCUMENTS
+    // ============================================================
+
+    documents: {
+      type: [documentSchema],
+      default: [],
+    },
+
+    // ============================================================
+    // OFFICER INFORMATION
+    // ============================================================
+
+    designation: {
+      type: String,
+      enum: [
+        "CENTRE_MANAGER",
+        "PROCUREMENT_OFFICER",
+        "VERIFICATION_OFFICER",
+        "SUPERVISOR",
+      ],
+      default: null,
+    },
+
+    officerCentre: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ProcurementCentre",
+      default: null,
+    },
+
+    // ============================================================
+    // ADMIN INFORMATION
+    // ============================================================
+
+    adminLevel: {
+      type: String,
+      enum: ["SUPER_ADMIN", "STATE_ADMIN", "DISTRICT_ADMIN"],
+      default: null,
+    },
+
+    // ============================================================
+    // LANGUAGE PREFERENCE
+    // ============================================================
 
     preferredLanguage: {
       type: String,
@@ -143,6 +319,10 @@ const userSchema = new mongoose.Schema(
       ],
       default: "English",
     },
+
+    // ============================================================
+    // NOTIFICATION PREFERENCES
+    // ============================================================
 
     notifications: {
       sms: {
@@ -161,34 +341,18 @@ const userSchema = new mongoose.Schema(
       },
     },
 
-    // ==============================
-    // CONSENTS
-    // ==============================
-
-    termsAccepted: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-
-    privacyAccepted: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-
-    // ==============================
+    // ============================================================
     // LOGIN INFORMATION
-    // ==============================
+    // ============================================================
 
     lastLogin: {
       type: Date,
       default: null,
     },
 
-    // ==============================
+    // ============================================================
     // PASSWORD RESET
-    // ==============================
+    // ============================================================
 
     resetPasswordToken: {
       type: String,
@@ -202,11 +366,9 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
   },
-
   {
     timestamps: true,
-  }
+  },
 );
 
-export default mongoose.models.User ||
-  mongoose.model("User", userSchema);
+export default mongoose.models.User || mongoose.model("User", userSchema);

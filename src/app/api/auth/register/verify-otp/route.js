@@ -1,23 +1,32 @@
 import { NextResponse } from "next/server";
 
+import bcrypt from "bcryptjs";
+
 import connectDB from "@/lib/db";
+
 import User from "@/models/User";
+
+import {
+  getOTP,
+  deleteOTP,
+} from "@/lib/otpStore";
 
 export async function POST(request) {
   try {
     const {
-      userId,
+      fullName,
       mobileNumber,
+      email,
+      password,
+      confirmPassword,
       otp,
-      termsAccepted,
-      privacyAccepted,
     } = await request.json();
 
-    // =====================================
-    // VALIDATE REQUEST
-    // =====================================
+    // ============================================================
+    // 1. VALIDATE OTP FORMAT
+    // ============================================================
 
-    if (!otp || !/^\d{4}$/.test(otp)) {
+    if (!otp || !/^\d{4}$/.test(String(otp))) {
       return NextResponse.json(
         {
           success: false,
@@ -27,104 +36,48 @@ export async function POST(request) {
       );
     }
 
-    if (!termsAccepted) {
+    // ============================================================
+    // 2. NORMALIZE MOBILE
+    // ============================================================
+
+    const mobile = String(mobileNumber || "")
+      .replace(/\D/g, "")
+      .trim();
+
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "You must accept the Terms & Conditions",
+          message: "Enter a valid Indian mobile number",
         },
         { status: 400 }
       );
     }
 
-    if (!privacyAccepted) {
+    // ============================================================
+    // 3. CHECK STORED OTP
+    // ============================================================
+
+    const storedOTP = getOTP(mobile);
+
+    if (!storedOTP) {
       return NextResponse.json(
         {
           success: false,
           message:
-            "You must accept the Privacy Policy",
+            "OTP expired or not found. Please request a new OTP.",
         },
         { status: 400 }
       );
     }
 
-    if (!userId && !mobileNumber) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "User information is required",
-        },
-        { status: 400 }
-      );
-    }
+    // ============================================================
+    // 4. CHECK OTP EXPIRY
+    // ============================================================
 
-    await connectDB();
+    if (Date.now() > storedOTP.expiresAt) {
+      deleteOTP(mobile);
 
-    // =====================================
-    // FIND USER WITH OTP FIELDS
-    // =====================================
-
-    let query = {};
-
-    if (userId) {
-      query = { _id: userId };
-    } else {
-      const mobile = mobileNumber.replace(
-        /\D/g,
-        ""
-      );
-
-      query = { mobile };
-    }
-
-    const user = await User.findOne(query).select(
-      "+otpCode +otpExpires +otpAttempts"
-    );
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Registration account not found",
-        },
-        { status: 404 }
-      );
-    }
-
-    console.log("VERIFY USER:", {
-      id: user._id.toString(),
-      mobile: user.mobile,
-      otpFromDB: user.otpCode,
-      otpExpires: user.otpExpires,
-      attempts: user.otpAttempts,
-      receivedOtp: otp,
-    });
-
-    // =====================================
-    // CHECK OTP EXISTS
-    // =====================================
-
-    if (!user.otpCode) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "No active OTP found. Please request a new OTP.",
-        },
-        { status: 400 }
-      );
-    }
-
-    // =====================================
-    // CHECK EXPIRY
-    // =====================================
-
-    if (
-      !user.otpExpires ||
-      user.otpExpires.getTime() < Date.now()
-    ) {
       return NextResponse.json(
         {
           success: false,
@@ -135,30 +88,11 @@ export async function POST(request) {
       );
     }
 
-    // =====================================
-    // CHECK ATTEMPTS
-    // =====================================
+    // ============================================================
+    // 5. VERIFY OTP
+    // ============================================================
 
-    if (user.otpAttempts >= 5) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Too many incorrect attempts. Request a new OTP.",
-        },
-        { status: 429 }
-      );
-    }
-
-    // =====================================
-    // COMPARE OTP
-    // =====================================
-
-    if (user.otpCode !== otp) {
-      user.otpAttempts += 1;
-
-      await user.save();
-
+    if (String(otp) !== String(storedOTP.otp)) {
       return NextResponse.json(
         {
           success: false,
@@ -168,51 +102,325 @@ export async function POST(request) {
       );
     }
 
-    // =====================================
-    // VERIFY ACCOUNT
-    // =====================================
+    // ============================================================
+    // 6. OTP VERIFIED
+    //
+    // OTP can no longer be reused.
+    // ============================================================
 
-    user.isVerified = true;
-    user.isActive = true;
+    deleteOTP(mobile);
 
-    user.termsAccepted = true;
-    user.privacyAccepted = true;
+    // ============================================================
+    // 7. VALIDATE NAME
+    // ============================================================
 
-    // Clear OTP
-    user.otpCode = null;
-    user.otpExpires = null;
-    user.otpAttempts = 0;
+    if (!fullName?.trim()) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Full name is required",
+        },
+        { status: 400 }
+      );
+    }
 
-    await user.save();
+    if (fullName.trim().length < 2) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Enter a valid full name",
+        },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json({
-      success: true,
-      message:
-        "Mobile number verified successfully",
+    // ============================================================
+    // 8. NORMALIZE EMAIL
+    // ============================================================
 
-      userId: user._id.toString(),
+    const normalizedEmail = String(email || "")
+      .trim()
+      .toLowerCase();
 
-      user: {
-        id: user._id.toString(),
-        name: user.name,
-        mobile: user.mobile,
-        email: user.email || null,
-        role: user.role,
-        isVerified: user.isVerified,
-        isActive: user.isActive,
-      },
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(normalizedEmail)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Enter a valid email address",
+        },
+        { status: 400 }
+      );
+    }
+
+    // ============================================================
+    // 9. VALIDATE PASSWORD
+    // ============================================================
+
+    if (!password) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Password is required",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Password must contain at least 6 characters",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (password !== confirmPassword) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Passwords do not match",
+        },
+        { status: 400 }
+      );
+    }
+
+    // ============================================================
+    // 10. OTP IS CORRECT
+    //
+    // ONLY NOW CONNECT TO DATABASE
+    // ============================================================
+
+    await connectDB();
+
+    // ============================================================
+    // 11. CHECK EXISTING MOBILE
+    // ============================================================
+
+    const existingMobile = await User.findOne({
+      mobile,
     });
+
+    if (existingMobile) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "An account with this mobile number already exists",
+        },
+        { status: 409 }
+      );
+    }
+
+    // ============================================================
+    // 12. CHECK EXISTING EMAIL
+    // ============================================================
+
+    const existingEmail = await User.findOne({
+      email: normalizedEmail,
+    });
+
+    if (existingEmail) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "An account with this email already exists",
+        },
+        { status: 409 }
+      );
+    }
+
+    // ============================================================
+    // 13. HASH PASSWORD
+    // ============================================================
+
+    const hashedPassword =
+      await bcrypt.hash(password, 12);
+
+    // ============================================================
+    // 14. CREATE USER
+    //
+    // OTP SUCCESSFUL
+    //       ↓
+    // USER CREATED
+    //       ↓
+    // PHONE VERIFIED
+    // ============================================================
+
+    const user = await User.create({
+      name: fullName.trim(),
+
+      mobile,
+
+      email: normalizedEmail,
+
+      password: hashedPassword,
+
+      role: "FARMER",
+
+      // ========================================================
+      // VERIFICATION
+      // ========================================================
+
+      verification: {
+        // Official/admin verification
+        isVerified: false,
+
+        // Mobile OTP verification
+        isPhoneVerified: true,
+
+        verifiedAt: null,
+
+        verifiedBy: null,
+
+        verifiedAtCentre: null,
+      },
+
+      // ========================================================
+      // ACCOUNT STATUS
+      // ========================================================
+
+      isActive: true,
+
+      // ========================================================
+      // ONBOARDING
+      // ========================================================
+
+      onboardingCompleted: false,
+
+      onboardingSkipped: false,
+
+      onboardingCompletedAt: null,
+    });
+
+    // ============================================================
+    // 15. SUCCESS RESPONSE
+    // ============================================================
+
+    return NextResponse.json(
+      {
+        success: true,
+
+        message:
+          "Account created and mobile number verified successfully",
+
+        userId: user._id.toString(),
+
+        user: {
+          id: user._id.toString(),
+
+          name: user.name,
+
+          mobile: user.mobile,
+
+          email: user.email,
+
+          role: user.role,
+
+          // ======================================================
+          // VERIFICATION
+          // ======================================================
+
+          verification: {
+            isVerified:
+              user.verification?.isVerified ??
+              false,
+
+            isPhoneVerified:
+              user.verification?.isPhoneVerified ??
+              true,
+
+            verifiedAt:
+              user.verification?.verifiedAt ??
+              null,
+          },
+
+          // Convenience property
+          isPhoneVerified: true,
+
+          // ======================================================
+          // ACCOUNT
+          // ======================================================
+
+          isActive: user.isActive,
+
+          // ======================================================
+          // ONBOARDING
+          // ======================================================
+
+          onboardingCompleted:
+            user.onboardingCompleted,
+
+          onboardingSkipped:
+            user.onboardingSkipped,
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error(
-      "VERIFY OTP ERROR:",
+      "VERIFY OTP / CREATE USER ERROR:",
       error
     );
+
+    // ============================================================
+    // DUPLICATE KEY ERROR
+    // ============================================================
+
+    if (error?.code === 11000) {
+      const duplicateField =
+        Object.keys(
+          error.keyPattern || {}
+        )[0];
+
+      if (duplicateField === "mobile") {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Mobile number is already registered",
+          },
+          { status: 409 }
+        );
+      }
+
+      if (duplicateField === "email") {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Email is already registered",
+          },
+          { status: 409 }
+        );
+      }
+
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "An account with these details already exists",
+        },
+        { status: 409 }
+      );
+    }
+
+    // ============================================================
+    // GENERAL ERROR
+    // ============================================================
 
     return NextResponse.json(
       {
         success: false,
         message:
-          "Unable to verify OTP",
+          error?.message ||
+          "Unable to create account",
       },
       { status: 500 }
     );

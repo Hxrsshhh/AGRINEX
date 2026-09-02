@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-
+import { randomUUID } from "crypto";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
 
@@ -19,7 +19,6 @@ export const authOptions = {
           label: "Mobile Number or Email",
           type: "text",
         },
-
         password: {
           label: "Password",
           type: "password",
@@ -41,7 +40,8 @@ export const authOptions = {
         const identifier =
           credentials.identifier.trim();
 
-        const isEmail = identifier.includes("@");
+        const isEmail =
+          identifier.includes("@");
 
         const query = isEmail
           ? {
@@ -51,9 +51,8 @@ export const authOptions = {
               mobile: identifier.replace(/\D/g, ""),
             };
 
-        const user = await User.findOne(query).select(
-          "+password"
-        );
+        const user = await User.findOne(query)
+          .select("+password");
 
         if (!user) {
           throw new Error(
@@ -85,19 +84,35 @@ export const authOptions = {
           );
         }
 
-        // Update login time
         user.lastLogin = new Date();
-
         await user.save();
 
         return {
           id: user._id.toString(),
+
           name: user.name,
+
           email: user.email || null,
+
           mobile: user.mobile || null,
+
           role: user.role,
-          isVerified: user.isVerified,
+
+          // Official/admin verification
+          isVerified:
+            user.verification?.isVerified ?? false,
+
+          // Mobile OTP verification
+          isPhoneVerified:
+            user.verification?.isPhoneVerified ?? false,
+
           isActive: user.isActive,
+
+          onboardingCompleted:
+            user.onboardingCompleted === true,
+
+          onboardingSkipped:
+            user.onboardingSkipped === true,
         };
       },
     }),
@@ -107,12 +122,33 @@ export const authOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+
         token.name = user.name;
+
         token.email = user.email;
+
         token.mobile = user.mobile;
+
         token.role = user.role;
-        token.isVerified = user.isVerified;
-        token.isActive = user.isActive;
+
+        // Official/admin verification
+        token.isVerified =
+          user.isVerified;
+
+        // Mobile OTP verification
+        token.isPhoneVerified =
+          user.isPhoneVerified;
+
+        token.isActive =
+          user.isActive;
+
+        token.onboardingCompleted =
+          user.onboardingCompleted === true;
+
+        token.onboardingSkipped =
+          user.onboardingSkipped === true;
+
+        token.sessionId = randomUUID();
       }
 
       return token;
@@ -125,12 +161,33 @@ export const authOptions = {
 
       session.user = {
         id: token.id,
+
         name: token.name,
+
         email: token.email,
+
         mobile: token.mobile,
+
         role: token.role,
-        isVerified: token.isVerified,
-        isActive: token.isActive,
+
+        // Official/admin verification
+        isVerified:
+          token.isVerified,
+
+        // Mobile OTP verification
+        isPhoneVerified:
+          token.isPhoneVerified,
+
+        isActive:
+          token.isActive,
+
+        onboardingCompleted:
+          token.onboardingCompleted === true,
+
+        onboardingSkipped:
+          token.onboardingSkipped === true,
+
+        sessionId: token.sessionId,
       };
 
       return session;
@@ -147,7 +204,4 @@ export const authOptions = {
 
 const handler = NextAuth(authOptions);
 
-export {
-  handler as GET,
-  handler as POST,
-};
+export { handler as GET, handler as POST };
