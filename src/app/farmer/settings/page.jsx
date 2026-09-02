@@ -25,10 +25,10 @@ import {
   Languages,
   Lock,
   Eye,
-  Volume2,
   Navigation,
   Users,
   Scale,
+  Sparkles,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -59,7 +59,6 @@ export default function SettingsPage() {
 
   const showToast = (message) => {
     setToastMessage(message);
-
     setTimeout(() => {
       setToastMessage("");
     }, 2500);
@@ -84,568 +83,345 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#080d12] text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300">
-      <main className="w-full p-4 sm:p-6 lg:p-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold mb-1.5">
-              <Sprout className="w-3 h-3 text-emerald-500" />
+    <div className="h-full w-full overflow-hidden flex flex-col justify-center items-center p-2 sm:p-4 select-none antialiased">
+      {/* MAIN CONTAINER */}
+      <div className="w-full max-w-7xl h-full min-h-[92vh] max-h-[94vh] flex flex-col min-h-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-emerald-950/5 dark:shadow-black/50 overflow-hidden relative">
+        {/* TOP ACCENT LINE */}
+        <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-lime-500 shrink-0" />
 
-              <span>AGRINEX Farmer Preferences</span>
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Settings
-            </h1>
-
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
-              Manage your procurement, booking, notification and account
-              preferences.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleSave}
-            className="self-start sm:self-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-lime-600 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-600/25 hover:shadow-emerald-500/40 transition-all flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            Save Changes
-          </button>
-        </div>
-
-        <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md overflow-hidden">
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                <User className="w-5 h-5" />
-              </div>
-
-              <div>
-                <h2 className="text-sm font-black uppercase tracking-wider">
-                  Account Information
-                </h2>
-
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Your registered AGRINEX farmer account
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-5 sm:p-6">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <SettingInfo
-                label="Farmer Name"
-                value="Rajesh Kumar"
-                icon={User}
-              />
-
-              <SettingInfo
-                label="Farmer ID"
-                value="AGR-FRM-10245"
-                icon={ShieldCheck}
-              />
-
-              <SettingInfo
-                label="Mobile Number"
-                value="+91 98XXXXXX42"
-                icon={Smartphone}
-              />
-
-              <SettingInfo
-                label="Registered State"
-                value="Assam"
-                icon={MapPin}
-              />
-
-              <SettingInfo
-                label="Account Status"
-                value="Verified"
-                icon={CheckCircle2}
-                valueClass="text-emerald-500"
-              />
-
-              <SettingInfo
-                label="KYC Status"
-                value="Completed"
-                icon={ShieldCheck}
-                valueClass="text-emerald-500"
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                <Sprout className="w-5 h-5" />
-              </div>
-
-              <div>
-                <h2 className="text-sm font-black uppercase tracking-wider">
-                  Procurement Preferences
-                </h2>
-
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Configure your default procurement details
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-5 sm:p-6">
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Preferred Centre */}
-
-              <SettingSelect
-                label="Preferred Procurement Centre"
-                value={preferences.preferredCentre}
-                icon={MapPin}
-                onChange={(value) =>
-                  setPreferences({
-                    ...preferences,
-                    preferredCentre: value,
-                  })
-                }
-                options={["XYZ Mandi", "ABC Centre", "DEF Centre"]}
-              />
-
-              {/* Default Crop */}
-
-              <SettingSelect
-                label="Default Crop"
-                value={preferences.defaultCrop}
-                icon={Sprout}
-                onChange={(value) =>
-                  setPreferences({
-                    ...preferences,
-                    defaultCrop: value,
-                  })
-                }
-                options={["Paddy", "Wheat", "Maize", "Mustard", "Rice"]}
-              />
-
-              {/* Default Quantity */}
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Default Quantity
-                </label>
-
-                <div className="relative">
-                  <ScaleIcon />
-
-                  <input
-                    type="number"
-                    value={preferences.defaultQuantity}
-                    onChange={(e) =>
-                      setPreferences({
-                        ...preferences,
-                        defaultQuantity: e.target.value,
-                      })
-                    }
-                    className="w-full pl-10 pr-20 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:border-emerald-500"
-                  />
-
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">
-                    QUINTALS
-                  </span>
-                </div>
-              </div>
-
-              {/* Time Format */}
-
-              <SettingSelect
-                label="Time Format"
-                value={preferences.timeFormat}
-                icon={Clock}
-                onChange={(value) =>
-                  setPreferences({
-                    ...preferences,
-                    timeFormat: value,
-                  })
-                }
-                options={["12-hour", "24-hour"]}
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
-            <SettingHeader
-              icon={Calendar}
-              title="Booking & Queue Preferences"
-              description="Control how AGRINEX handles your procurement appointments"
-            />
-          </div>
-
-          <div className="p-5 sm:p-6 space-y-3">
-            <PreferenceRow
-              icon={Calendar}
-              title="Slot Availability Alerts"
-              description="Notify me when new procurement slots become available"
-              enabled={notifications.booking}
-              onToggle={() => toggleNotification("booking")}
-            />
-
-            <PreferenceRow
-              icon={Users}
-              title="Queue Position Updates"
-              description="Receive updates when your queue position changes"
-              enabled={notifications.queue}
-              onToggle={() => toggleNotification("queue")}
-            />
-
-            <PreferenceRow
-              icon={Clock}
-              title="Appointment Reminder"
-              description="Remind me before my scheduled procurement slot"
-              enabled={true}
-              onToggle={() => { }}
-            />
-
-            <PreferenceRow
-              icon={Navigation}
-              title="Preferred Centre Suggestions"
-              description="Suggest centres based on queue time and distance"
-              enabled={preferences.location}
-              onToggle={() =>
-                setPreferences({
-                  ...preferences,
-                  location: !preferences.location,
-                })
-              }
-            />
-          </div>
-        </section>
-
-        <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
-            <SettingHeader
-              icon={Bell}
-              title="Notifications"
-              description="Choose which procurement updates you want to receive"
-            />
-          </div>
-
-          <div className="p-5 sm:p-6 space-y-3">
-            <PreferenceRow
-              icon={Calendar}
-              title="Booking Updates"
-              description="Booking confirmations, changes and cancellations"
-              enabled={notifications.booking}
-              onToggle={() => toggleNotification("booking")}
-            />
-
-            <PreferenceRow
-              icon={Users}
-              title="Queue Notifications"
-              description="Token movement and estimated waiting time"
-              enabled={notifications.queue}
-              onToggle={() => toggleNotification("queue")}
-            />
-
-            <PreferenceRow
-              icon={Scale}
-              title="Procurement Updates"
-              description="Weighing, quality verification and procurement status"
-              enabled={notifications.procurement}
-              onToggle={() => toggleNotification("procurement")}
-            />
-
-            <PreferenceRow
-              icon={CreditCard}
-              title="Payment Notifications"
-              description="Payment processing and DBT settlement updates"
-              enabled={notifications.payment}
-              onToggle={() => toggleNotification("payment")}
-            />
-
-            <PreferenceRow
-              icon={Smartphone}
-              title="SMS Notifications"
-              description="Receive important alerts through registered mobile number"
-              enabled={notifications.sms}
-              onToggle={() => toggleNotification("sms")}
-            />
-
-            <PreferenceRow
-              icon={Bell}
-              title="Push Notifications"
-              description="Receive real-time alerts from AGRINEX"
-              enabled={notifications.push}
-              onToggle={() => toggleNotification("push")}
-            />
-          </div>
-        </section>
-
-        <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
-            <SettingHeader
-              icon={Globe}
-              title="Language & Appearance"
-              description="Customize how AGRINEX appears and communicates"
-            />
-          </div>
-
-          <div className="p-5 sm:p-6 grid md:grid-cols-2 gap-4">
-            <SettingSelect
-              label="App Language"
-              value={preferences.language}
-              icon={Languages}
-              onChange={(value) =>
-                setPreferences({
-                  ...preferences,
-                  language: value,
-                })
-              }
-              options={[
-                "English",
-                "অসমীয়া (Assamese)",
-                "हिन्दी (Hindi)",
-                "বাংলা (Bengali)",
-              ]}
-            />
-
+        <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-6 lg:p-7 overflow-hidden">
+          {/* HEADER BAR */}
+          <header className="shrink-0 pb-4 border-b border-slate-200/80 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                Appearance
-              </label>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    showToast("Use the theme button in the navbar")
-                  }
-                  className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center gap-2 text-xs font-bold hover:border-emerald-500 transition"
-                >
-                  <Sun className="w-4 h-4 text-amber-500" />
-                  Light
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    showToast("Use the theme button in the navbar")
-                  }
-                  className="p-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center gap-2 text-xs font-bold"
-                >
-                  <Moon className="w-4 h-4 text-emerald-500" />
-                  Dark
-                </button>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider mb-1.5 border border-emerald-500/20">
+                <Sparkles className="w-3 h-3 text-emerald-500" />
+                <span>AGRINEX Farmer Preferences</span>
               </div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                Settings
+              </h1>
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Manage your procurement, booking, notification and account preferences.
+              </p>
             </div>
-          </div>
-        </section>
-
-        <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
-            <SettingHeader
-              icon={ShieldCheck}
-              title="Privacy & Security"
-              description="Manage your account security and data-sharing preferences"
-            />
-          </div>
-
-          <div className="p-5 sm:p-6 space-y-3">
-            <PreferenceRow
-              icon={Eye}
-              title="Profile Visibility"
-              description="Allow procurement centres to view your basic farmer profile"
-              enabled={privacy.profileVisibility}
-              onToggle={() => togglePrivacy("profileVisibility")}
-            />
-
-            <PreferenceRow
-              icon={MapPin}
-              title="Location Sharing"
-              description="Use your location to recommend nearby procurement centres"
-              enabled={privacy.locationSharing}
-              onToggle={() => togglePrivacy("locationSharing")}
-            />
 
             <button
               type="button"
-              onClick={() => showToast("Password change screen opened")}
-              className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 hover:border-emerald-500/40 transition"
+              onClick={handleSave}
+              className="h-10 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 cursor-pointer transition active:scale-95 shrink-0 self-start sm:self-auto"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                  <Lock className="w-4 h-4 text-slate-500" />
-                </div>
+              <Save className="w-4 h-4 stroke-[2.5]" />
+              <span>SAVE CHANGES</span>
+            </button>
+          </header>
 
-                <div className="text-left">
-                  <p className="text-xs font-black">Change Password</p>
-
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    Update your AGRINEX account password
-                  </p>
+          {/* SCROLLABLE INNER DASHBOARD */}
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 pt-4 space-y-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 hover:scrollbar-thumb-emerald-500">
+            {/* ACCOUNT OVERVIEW */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-white/5 shadow-sm">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5 mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                      Account Information
+                    </h2>
+                    <p className="text-[10px] text-slate-400">Your registered AGRINEX farmer profile</p>
+                  </div>
                 </div>
               </div>
 
-              <ChevronRight className="w-4 h-4 text-slate-400" />
-            </button>
-          </div>
-        </section>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                <SettingInfo label="Farmer Name" value="Rajesh Kumar" icon={User} />
+                <SettingInfo label="Farmer ID" value="AGR-FRM-10245" icon={ShieldCheck} />
+                <SettingInfo label="Mobile Number" value="+91 98XXXXXX42" icon={Smartphone} />
+                <SettingInfo label="Registered State" value="Assam" icon={MapPin} />
+                <SettingInfo label="Account Status" value="Verified" icon={CheckCircle2} valueClass="text-emerald-500" />
+                <SettingInfo label="KYC Status" value="Completed" icon={ShieldCheck} valueClass="text-emerald-500" />
+              </div>
+            </div>
 
-        <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
-            <SettingHeader
-              icon={CreditCard}
-              title="Payment & Bank Preferences"
-              description="Manage your procurement payment information"
-            />
-          </div>
+            {/* TWO-COLUMN CONFIGURATION */}
+            <div className="grid lg:grid-cols-2 gap-4">
+              {/* PROCUREMENT PREFERENCES */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-white/5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 dark:border-white/5 mb-3">
+                    <Sprout className="w-4 h-4 text-emerald-500" />
+                    <div>
+                      <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                        Procurement Preferences
+                      </h2>
+                      <p className="text-[9px] text-slate-400">Configure default delivery values</p>
+                    </div>
+                  </div>
 
-          <div className="p-5 sm:p-6">
+                  <div className="grid sm:grid-cols-2 gap-2.5">
+                    <SettingSelect
+                      label="Preferred Centre"
+                      value={preferences.preferredCentre}
+                      icon={MapPin}
+                      onChange={(value) => setPreferences({ ...preferences, preferredCentre: value })}
+                      options={["XYZ Mandi", "ABC Centre", "DEF Centre"]}
+                    />
+                    <SettingSelect
+                      label="Default Crop"
+                      value={preferences.defaultCrop}
+                      icon={Sprout}
+                      onChange={(value) => setPreferences({ ...preferences, defaultCrop: value })}
+                      options={["Paddy", "Wheat", "Maize", "Mustard", "Rice"]}
+                    />
+
+                    <div>
+                      <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Default Quantity
+                      </label>
+                      <div className="relative">
+                        <Scale className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-500 pointer-events-none" />
+                        <input
+                          type="number"
+                          value={preferences.defaultQuantity}
+                          onChange={(e) => setPreferences({ ...preferences, defaultQuantity: e.target.value })}
+                          className="w-full h-9 pl-9 pr-14 rounded-xl bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/10 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400">
+                          QTL
+                        </span>
+                      </div>
+                    </div>
+
+                    <SettingSelect
+                      label="Time Format"
+                      value={preferences.timeFormat}
+                      icon={Clock}
+                      onChange={(value) => setPreferences({ ...preferences, timeFormat: value })}
+                      options={["12-hour", "24-hour"]}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* BOOKING & QUEUE BEHAVIOR */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-white/5 shadow-sm">
+                <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 dark:border-white/5 mb-3">
+                  <Calendar className="w-4 h-4 text-emerald-500" />
+                  <div>
+                    <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                      Queue & Slot Behavior
+                    </h2>
+                    <p className="text-[9px] text-slate-400">Telemetry notifications & arrival pacing</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <PreferenceRow
+                    icon={Calendar}
+                    title="Slot Availability Alerts"
+                    description="Notify me when new procurement windows open"
+                    enabled={notifications.booking}
+                    onToggle={() => toggleNotification("booking")}
+                  />
+                  <PreferenceRow
+                    icon={Users}
+                    title="Live Queue Radar"
+                    description="Receive alerts when token position updates"
+                    enabled={notifications.queue}
+                    onToggle={() => toggleNotification("queue")}
+                  />
+                  <PreferenceRow
+                    icon={Navigation}
+                    title="Proximity Mandi Suggestions"
+                    description="Recommend centres by waiting time and route distance"
+                    enabled={preferences.location}
+                    onToggle={() => setPreferences({ ...preferences, location: !preferences.location })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* NOTIFICATION CHANNELS & AUDIT */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-white/5 shadow-sm">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5 mb-3">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-emerald-500" />
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                    Dispatch & Notification Triggers
+                  </h3>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-2.5">
+                <PreferenceRow
+                  icon={Scale}
+                  title="Procurement Progress"
+                  description="Weighbridge recordings and moisture quality checks"
+                  enabled={notifications.procurement}
+                  onToggle={() => toggleNotification("procurement")}
+                />
+                <PreferenceRow
+                  icon={CreditCard}
+                  title="DBT Payment Clearing"
+                  description="Direct Benefit Transfer processing and settlements"
+                  enabled={notifications.payment}
+                  onToggle={() => toggleNotification("payment")}
+                />
+                <PreferenceRow
+                  icon={Smartphone}
+                  title="SMS Gate Alerts"
+                  description="Receive pass security tokens via SMS"
+                  enabled={notifications.sms}
+                  onToggle={() => toggleNotification("sms")}
+                />
+                <PreferenceRow
+                  icon={Bell}
+                  title="System Notifications"
+                  description="Real-time portal toasts and status banner updates"
+                  enabled={notifications.push}
+                  onToggle={() => toggleNotification("push")}
+                />
+              </div>
+            </div>
+
+            {/* PAYMENT & SECURITY SPLIT */}
             <div className="grid md:grid-cols-2 gap-4">
-              <SettingInfo
-                label="Payment Method"
-                value="Direct Benefit Transfer (DBT)"
-                icon={CreditCard}
-              />
+              {/* PAYMENT & BANK MASK */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-white/5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 dark:border-white/5 mb-3">
+                    <CreditCard className="w-4 h-4 text-emerald-500" />
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                        Bank Details & DBT
+                      </h3>
+                      <p className="text-[9px] text-slate-400">Masked records for subsidy settlements</p>
+                    </div>
+                  </div>
 
-              <SettingInfo
-                label="Bank Account"
-                value="XXXX XXXX 4821"
-                icon={CreditCard}
-              />
+                  <div className="grid grid-cols-2 gap-2">
+                    <SettingInfo label="Payment Method" value="DBT Settlement" icon={CreditCard} />
+                    <SettingInfo label="Masked Account" value="XXXX XXXX 4821" icon={CreditCard} />
+                    <SettingInfo label="Bank Status" value="PFMS Active" icon={ShieldCheck} valueClass="text-emerald-500" />
+                    <SettingInfo label="Last Transfer" value="₹42,500" icon={CheckCircle2} valueClass="text-emerald-500" />
+                  </div>
+                </div>
 
-              <SettingInfo
-                label="Bank Verification"
-                value="Verified"
-                icon={ShieldCheck}
-                valueClass="text-emerald-500"
-              />
+                <div className="mt-3 p-3 rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-2 text-slate-600 dark:text-slate-400 text-[10px]">
+                  <Info className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Account details are locked to official Aadhaar payment bridges for security.</span>
+                </div>
+              </div>
 
-              <SettingInfo
-                label="Last Payment"
-                value="₹42,500 • Completed"
-                icon={CheckCircle2}
-                valueClass="text-emerald-500"
-              />
+              {/* PRIVACY & ACCESS */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-white/5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 dark:border-white/5 mb-3">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                        Privacy & Credentials
+                      </h3>
+                      <p className="text-[9px] text-slate-400">Security authorizations and location</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <PreferenceRow
+                      icon={Eye}
+                      title="Mandi Profile Visibility"
+                      description="Allow APMC operators to inspect verification status"
+                      enabled={privacy.profileVisibility}
+                      onToggle={() => togglePrivacy("profileVisibility")}
+                    />
+                    <PreferenceRow
+                      icon={MapPin}
+                      title="Location Telemetry"
+                      description="Share geolocation for dynamic gate slot routing"
+                      enabled={privacy.locationSharing}
+                      onToggle={() => togglePrivacy("locationSharing")}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => showToast("Password update request dispatched")}
+                  className="mt-3 w-full h-9 flex items-center justify-between px-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/5 hover:border-emerald-400 transition"
+                >
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Change Account Password</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+              </div>
             </div>
 
-            <div className="mt-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 flex items-start gap-3">
-              <Info className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+            {/* SUPPORT & ACTIONS */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-white/5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="w-4 h-4 text-emerald-500" />
+                <div>
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white">Mandi Procurement Helpdesk</h4>
+                  <p className="text-[10px] text-slate-400">AGRINEX Support v1.0 • 2026 APMC Harvest Season</p>
+                </div>
+              </div>
 
-              <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">
-                Your bank details are used only for eligible procurement
-                payments and DBT settlement. Sensitive account information is
-                masked for security.
-              </p>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => showToast("Support contact opened")}
+                  className="flex-1 sm:flex-initial h-8 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:border-emerald-400 transition"
+                >
+                  Contact Desk
+                </button>
+                <button
+                  type="button"
+                  onClick={() => showToast("Logout dialog displayed")}
+                  className="flex-1 sm:flex-initial h-8 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-[11px] font-bold flex items-center justify-center gap-1.5 transition"
+                >
+                  <LogOut className="w-3 h-3" />
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
-        </section>
 
-        <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800">
-            <SettingHeader
-              icon={HelpCircle}
-              title="Help & Support"
-              description="Get assistance with bookings, procurement and payments"
-            />
-          </div>
-
-          <div className="p-5 sm:p-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <SupportButton
-              icon={HelpCircle}
-              title="Help Centre"
-              description="FAQs & guides"
-              onClick={() => showToast("Opening Help Centre")}
-            />
-
-            <SupportButton
-              icon={MessageSquare}
-              title="Contact Support"
-              description="Talk to AGRINEX support"
-              onClick={() => showToast("Support request opened")}
-            />
-
-            <SupportButton
-              icon={Info}
-              title="About AGRINEX"
-              description="Version 1.0 • SIH 2026"
-              onClick={() => showToast("AGRINEX Procurement Platform")}
-            />
-          </div>
-        </section>
-
-        <section className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
-          <div className="p-5 sm:p-6">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                type="button"
-                onClick={() => showToast("Logout confirmation opened")}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500/15 text-xs font-black transition"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </button>
-
-              <button
-                type="button"
-                onClick={() => showToast("Account deletion request opened")}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 hover:border-rose-500/40 hover:text-rose-500 text-xs font-black transition"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete Account
-              </button>
+          {/* FOOTER */}
+          <footer className="shrink-0 pt-3 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                Official Farmer Profile & Preferences • APMC Digital Mandi
+              </span>
             </div>
-          </div>
-        </section>
-
-        <div className="flex justify-end pb-4">
-          <button
-            type="button"
-            onClick={handleSave}
-            className="px-6 py-3 rounded-2xl bg-linear-to-r from-emerald-600 via-teal-600 to-lime-600 text-white font-black text-xs shadow-md shadow-emerald-600/25 hover:shadow-emerald-500/40 transition-all flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            Save All Settings
-          </button>
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+              End-to-End Encrypted
+            </span>
+          </footer>
         </div>
-      </main>
-    </div>
-  );
-}
-
-function SettingHeader({ icon: Icon, title, description }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-        <Icon className="w-5 h-5" />
       </div>
 
-      <div>
-        <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
-          {title}
-        </h2>
-
-        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-          {description}
-        </p>
-      </div>
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[500] px-4 py-2 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xl text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }
 
 function SettingInfo({ label, value, icon: Icon, valueClass = "" }) {
   return (
-    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-      <div className="flex items-center gap-2 mb-2">
-        <Icon className="w-3.5 h-3.5 text-emerald-500" />
-
-        <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">
-          {label}
-        </span>
+    <div className="p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5">
+      <div className="flex items-center gap-1.5 mb-1 text-slate-400">
+        <Icon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+        <span className="text-[8px] uppercase tracking-wider font-bold">{label}</span>
       </div>
-
-      <p className={`text-xs font-black ${valueClass}`}>{value}</p>
+      <p className={`text-xs font-black truncate ${valueClass || "text-slate-900 dark:text-white"}`}>{value}</p>
     </div>
   );
 }
@@ -653,20 +429,20 @@ function SettingInfo({ label, value, icon: Icon, valueClass = "" }) {
 function SettingSelect({ label, value, icon: Icon, options, onChange }) {
   return (
     <div>
-      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+      <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-1">
         {label}
       </label>
-
       <div className="relative">
-        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 pointer-events-none" />
-
+        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-500 pointer-events-none" />
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:border-emerald-500 appearance-none"
+          className="w-full h-9 pl-9 pr-3 rounded-xl bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/10 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-emerald-500 appearance-none"
         >
           {options.map((option) => (
-            <option key={option}>{option}</option>
+            <option key={option} value={option}>
+              {option}
+            </option>
           ))}
         </select>
       </div>
@@ -676,20 +452,14 @@ function SettingSelect({ label, value, icon: Icon, options, onChange }) {
 
 function PreferenceRow({ icon: Icon, title, description, enabled, onToggle }) {
   return (
-    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="w-9 h-9 shrink-0 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
-          <Icon className="w-4 h-4 text-emerald-500" />
+    <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="w-7 h-7 shrink-0 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+          <Icon className="w-3.5 h-3.5" />
         </div>
-
         <div className="min-w-0">
-          <p className="text-xs font-black text-slate-900 dark:text-white">
-            {title}
-          </p>
-
-          <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">
-            {description}
-          </p>
+          <p className="text-xs font-black text-slate-900 dark:text-white truncate">{title}</p>
+          <p className="text-[9px] text-slate-400 truncate">{description}</p>
         </div>
       </div>
 
@@ -697,42 +467,14 @@ function PreferenceRow({ icon: Icon, title, description, enabled, onToggle }) {
         type="button"
         onClick={onToggle}
         aria-label={`Toggle ${title}`}
-        className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${enabled ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"
+        className={`relative shrink-0 w-9 h-5 rounded-full transition-colors ${enabled ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"
           }`}
       >
         <span
-          className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${enabled ? "translate-x-6" : "translate-x-1"
+          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${enabled ? "translate-x-4.5" : "translate-x-0.5"
             }`}
         />
       </button>
     </div>
-  );
-}
-
-function SupportButton({ icon: Icon, title, description, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="text-left p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-emerald-500/40 transition-all"
-    >
-      <div className="flex items-center justify-between">
-        <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-          <Icon className="w-4 h-4 text-emerald-500" />
-        </div>
-
-        <ChevronRight className="w-4 h-4 text-slate-400" />
-      </div>
-
-      <p className="text-xs font-black mt-3">{title}</p>
-
-      <p className="text-[10px] text-slate-400 mt-0.5">{description}</p>
-    </button>
-  );
-}
-
-function ScaleIcon() {
-  return (
-    <Scale className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
   );
 }

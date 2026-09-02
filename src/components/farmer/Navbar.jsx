@@ -24,21 +24,12 @@ export default function Navbar({ onMenuClick }) {
   }, []);
 
   const toggleTheme = () => {
-    setTheme(
-      resolvedTheme === "dark"
-        ? "light"
-        : "dark"
-    );
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
-  const user = session?.user;
 
-  const userName =
-    user?.name?.trim() ||
-    "Farmer";
-  const firstName =
-    userName !== "Farmer"
-      ? userName.split(" ")[0]
-      : "Farmer";
+  const user = session?.user;
+  const userName = user?.name?.trim() || "Farmer";
+  const firstName = userName !== "Farmer" ? userName.split(" ")[0] : "Farmer";
 
   const initials =
     userName !== "Farmer"
@@ -60,36 +51,27 @@ export default function Navbar({ onMenuClick }) {
         right-0
         z-[100]
         h-16
-        bg-white/95
-        dark:bg-[#0a1016]/95
+        bg-white/80
+        dark:bg-slate-900/80
         text-slate-900
         dark:text-slate-100
-        backdrop-blur-xl
+        backdrop-blur-2xl
         border-b
-        border-slate-200
-        dark:border-slate-800
+        border-slate-200/90
+        dark:border-white/10
         shadow-sm
-        dark:shadow-black/20
+        dark:shadow-black/30
         transition-colors
         duration-300
+        select-none
       "
     >
-      <div
-        className="
-          h-full
-          px-4
-          sm:px-6
-          flex
-          items-center
-          justify-between
-        "
-      >
-       
+      {/* TOP ACCENT LINE */}
+      <div className="h-0.5 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-lime-500 shrink-0" />
 
+      <div className="h-[calc(100%-2px)] px-4 sm:px-6 flex items-center justify-between">
+        {/* BRAND & MOBILE TRIGGER */}
         <div className="flex items-center gap-3">
-
-       
-
           <button
             type="button"
             onClick={onMenuClick}
@@ -98,34 +80,24 @@ export default function Navbar({ onMenuClick }) {
               lg:hidden
               p-2
               rounded-xl
-              bg-slate-100
-              dark:bg-slate-800
+              bg-slate-100/80
+              dark:bg-slate-800/60
+              border
+              border-slate-200/80
+              dark:border-white/5
               text-slate-700
               dark:text-slate-200
-              hover:bg-emerald-500/10
-              dark:hover:bg-emerald-500/10
               hover:text-emerald-600
               dark:hover:text-emerald-400
+              hover:border-emerald-500/30
               transition-all
-              duration-200
+              active:scale-95
             "
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-4 h-4" />
           </button>
 
-
-          <Link
-            href="/"
-            className="
-              flex
-              items-center
-              gap-2.5
-              group
-            "
-          >
-
-          
-
+          <Link href="/" className="flex items-center gap-2.5 group">
             <div
               className="
                 w-9
@@ -134,7 +106,7 @@ export default function Navbar({ onMenuClick }) {
                 bg-gradient-to-br
                 from-emerald-500
                 to-lime-500
-                p-[2px]
+                p-[1.5px]
                 shadow-md
                 shadow-emerald-500/20
                 group-hover:scale-105
@@ -148,88 +120,55 @@ export default function Navbar({ onMenuClick }) {
                   h-full
                   rounded-[10px]
                   bg-slate-950
-                  dark:bg-[#060b10]
+                  dark:bg-slate-900
                   flex
                   items-center
                   justify-center
                 "
               >
-                <Sprout
-                  className="
-                    w-5
-                    h-5
-                    text-emerald-400
-                  "
-                />
+                <Sprout className="w-5 h-5 text-emerald-400" />
               </div>
             </div>
 
-          
-
             <div className="hidden sm:block">
-              <div
-                className="
-                  text-lg
-                  font-black
-                  tracking-tight
-                  text-slate-900
-                  dark:text-white
-                "
-              >
+              <div className="text-base font-black tracking-tight text-slate-900 dark:text-white leading-none">
                 AGRI
-                <span
-                  className="
-                    text-emerald-500
-                    dark:text-emerald-400
-                  "
-                >
+                <span className="text-emerald-500 dark:text-emerald-400">
                   NEX
                 </span>
               </div>
-
-              <p
-                className="
-                  text-[9px]
-                  font-medium
-                  text-slate-400
-                  dark:text-slate-500
-                "
-              >
+              <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mt-1">
                 Smart Procurement
               </p>
             </div>
           </Link>
         </div>
 
-        <div
-          className="
-            flex
-            items-center
-            gap-1.5
-            sm:gap-2
-          "
-        >
-
+        {/* CONTROLS & PROFILE */}
+        <div className="flex items-center gap-2">
+          {/* NOTIFICATION TRIGGER */}
           <Link
             href="/farmer/notifications"
             aria-label="Notifications"
             className="
               relative
-              p-2.5
+              p-2
               rounded-xl
               text-slate-600
-              dark:text-slate-300
-              hover:bg-slate-100
-              dark:hover:bg-slate-800
+              dark:text-slate-400
+              bg-slate-100/70
+              dark:bg-slate-800/50
+              border
+              border-slate-200/80
+              dark:border-white/5
               hover:text-emerald-600
               dark:hover:text-emerald-400
+              hover:border-emerald-500/30
               transition-all
-              duration-200
+              active:scale-95
             "
           >
             <Bell className="w-4 h-4" />
-
-
             <span
               className="
                 absolute
@@ -241,11 +180,12 @@ export default function Navbar({ onMenuClick }) {
                 bg-emerald-500
                 ring-2
                 ring-white
-                dark:ring-[#0a1016]
+                dark:ring-slate-900
               "
             />
           </Link>
 
+          {/* THEME TOGGLE */}
           <button
             type="button"
             onClick={toggleTheme}
@@ -253,87 +193,65 @@ export default function Navbar({ onMenuClick }) {
             className="
               hidden
               sm:flex
-              p-2.5
+              p-2
               rounded-xl
               text-slate-600
-              dark:text-slate-300
-              bg-transparent
-              hover:bg-slate-100
-              dark:hover:bg-slate-800
+              dark:text-slate-400
+              bg-slate-100/70
+              dark:bg-slate-800/50
+              border
+              border-slate-200/80
+              dark:border-white/5
               hover:text-emerald-600
               dark:hover:text-emerald-400
+              hover:border-emerald-500/30
               transition-all
-              duration-200
+              active:scale-95
             "
           >
             {mounted ? (
               resolvedTheme === "dark" ? (
-                <Sun
-                  className="
-                    w-4
-                    h-4
-                    text-amber-400
-                  "
-                />
+                <Sun className="w-4 h-4 text-amber-400" />
               ) : (
-                <Moon
-                  className="
-                    w-4
-                    h-4
-                    text-slate-700
-                    dark:text-slate-200
-                  "
-                />
+                <Moon className="w-4 h-4 text-slate-700 dark:text-slate-200" />
               )
             ) : (
-              <Moon
-                className="
-                  w-4
-                  h-4
-                  text-slate-700
-                  dark:text-slate-200
-                "
-              />
+              <Moon className="w-4 h-4 text-slate-700 dark:text-slate-200" />
             )}
           </button>
 
+          {/* USER CARD CHIP */}
           <div
             className="
               flex
               items-center
               gap-2
               px-2
-              py-1.5
-              rounded-xl
-              bg-slate-100
-              dark:bg-slate-800
-              text-slate-800
-              dark:text-slate-100
+              py-1
+              rounded-2xl
+              bg-slate-100/70
+              dark:bg-slate-800/50
               border
-              border-transparent
-              hover:border-slate-200
-              dark:hover:border-slate-700
+              border-slate-200/80
+              dark:border-white/5
+              hover:border-emerald-500/30
               transition-all
-              duration-200
             "
           >
-
             <div
               className="
                 w-7
                 h-7
-                rounded-lg
-                bg-gradient-to-br
-                from-emerald-500
-                to-lime-500
+                rounded-xl
+                bg-emerald-600
+                text-white
                 flex
                 items-center
                 justify-center
-                text-white
                 text-[10px]
                 font-black
                 shadow-sm
-                shadow-emerald-500/20
+                shadow-emerald-600/20
                 overflow-hidden
               "
             >
@@ -341,11 +259,7 @@ export default function Navbar({ onMenuClick }) {
                 <img
                   src={user.image}
                   alt={userName}
-                  className="
-                    w-full
-                    h-full
-                    object-cover
-                  "
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 initials
@@ -357,16 +271,15 @@ export default function Navbar({ onMenuClick }) {
                 hidden
                 sm:block
                 text-xs
-                font-bold
+                font-black
                 text-slate-800
                 dark:text-slate-100
                 max-w-[120px]
                 truncate
+                pr-1
               "
             >
-              {status === "loading"
-                ? "Loading..."
-                : firstName}
+              {status === "loading" ? "Loading..." : firstName}
             </span>
           </div>
         </div>
