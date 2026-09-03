@@ -1,1821 +1,408 @@
 "use client";
 
-import {
-    CalendarDays,
-    Check,
-    CheckCircle2,
-    ChevronRight,
-    Clock3,
-    Filter,
-    MapPin,
-    Search,
-    UserCheck,
-    Users,
-    X,
-    XCircle,
-    PackageCheck,
-    ListFilter,
-} from "lucide-react";
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import useSWR from "swr";
 import { useRouter } from "next/navigation";
+import {
+  AlertCircle, ArrowRight, BadgeCheck, Calendar, Check, CheckCircle2,
+  ChevronDown, ChevronRight, Clock, History, Loader2, MapPin, Phone,
+  RefreshCw, Search, ShieldCheck, Smartphone, User, UserCheck, Users,
+  Wheat, X, XCircle, PackageCheck, Ban, ScanLine, RotateCcw,
+} from "lucide-react";
+import { Html5Qrcode } from "html5-qrcode";
 
-/* =========================================================
-   INITIAL BOOKINGS
-========================================================= */
+const fetcher = (url) => fetch(url, { cache: "no-store", credentials: "include" }).then((res) => res.json());
 
-const initialBookings = [
-    {
-        id: "BK1024",
-        farmer: "Ramesh Kumar",
-        farmerId: "FR1024",
-        village: "Chas",
-        centre: "XYZ Farmer Centre",
-        date: "2026-09-01",
-        time: "10:30 AM",
-        purpose: "Paddy",
-        status: "CONFIRMED",
-        arrived: true,
-        queueToken: null,
-        phone: "9876543210",
-        createdAt: "Aug 29, 2026",
-    },
-    {
-        id: "BK1025",
-        farmer: "Suresh Singh",
-        farmerId: "FR1025",
-        village: "Bokaro",
-        centre: "XYZ Farmer Centre",
-        date: "2026-09-01",
-        time: "11:00 AM",
-        purpose: "Wheat",
-        status: "BOOKED",
-        arrived: false,
-        queueToken: null,
-        phone: "9876543211",
-        createdAt: "Aug 30, 2026",
-    },
-    {
-        id: "BK1026",
-        farmer: "Anita Devi",
-        farmerId: "FR1026",
-        village: "Kandra",
-        centre: "XYZ Farmer Centre",
-        date: "2026-09-01",
-        time: "11:30 AM",
-        purpose: "Paddy",
-        status: "COMPLETED",
-        arrived: true,
-        queueToken: 103,
-        phone: "9876543212",
-        createdAt: "Aug 28, 2026",
-    },
-    {
-        id: "BK1027",
-        farmer: "Mohan Das",
-        farmerId: "FR1027",
-        village: "Dumri",
-        centre: "XYZ Farmer Centre",
-        date: "2026-09-01",
-        time: "12:00 PM",
-        purpose: "Maize",
-        status: "CONFIRMED",
-        arrived: false,
-        queueToken: null,
-        phone: "9876543213",
-        createdAt: "Aug 30, 2026",
-    },
-    {
-        id: "BK1028",
-        farmer: "Sunita Kumari",
-        farmerId: "FR1028",
-        village: "Pindrajora",
-        centre: "XYZ Farmer Centre",
-        date: "2026-09-01",
-        time: "12:30 PM",
-        purpose: "Paddy",
-        status: "BOOKED",
-        arrived: false,
-        queueToken: null,
-        phone: "9876543214",
-        createdAt: "Aug 31, 2026",
-    },
-    {
-        id: "BK1029",
-        farmer: "Rajesh Mahto",
-        farmerId: "FR1029",
-        village: "Petarwar",
-        centre: "XYZ Farmer Centre",
-        date: "2026-09-01",
-        time: "01:00 PM",
-        purpose: "Wheat",
-        status: "CANCELLED",
-        arrived: false,
-        queueToken: null,
-        phone: "9876543215",
-        createdAt: "Aug 28, 2026",
-    },
-    {
-        id: "BK1030",
-        farmer: "Priya Devi",
-        farmerId: "FR1030",
-        village: "Kasmar",
-        centre: "XYZ Farmer Centre",
-        date: "2026-09-02",
-        time: "10:30 AM",
-        purpose: "Paddy",
-        status: "BOOKED",
-        arrived: false,
-        queueToken: null,
-        phone: "9876543216",
-        createdAt: "Aug 31, 2026",
-    },
-    {
-        id: "BK1031",
-        farmer: "Arjun Kumar",
-        farmerId: "FR1031",
-        village: "Chas",
-        centre: "ABC Procurement Centre",
-        date: "2026-09-01",
-        time: "02:00 PM",
-        purpose: "Rice",
-        status: "CONFIRMED",
-        arrived: true,
-        queueToken: null,
-        phone: "9876543217",
-        createdAt: "Aug 30, 2026",
-    },
-];
+const toDateStr = (v = new Date()) => new Date(v).toISOString().split("T")[0];
+const fmtDate = (v) => (!v ? "--" : new Date(v).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }));
+const fmtTime = (v) => (!v ? "--" : /^\d{1,2}:\d{2}/.test(v) ? v : new Date(v).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
 
-/* =========================================================
-   PAGE
-========================================================= */
+const STATUS_MAP = {
+  PENDING: { label: "Pending", cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400", dot: "bg-amber-500" },
+  CONFIRMED: { label: "Confirmed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400", dot: "bg-emerald-500" },
+  CHECKED_IN: { label: "Checked In", cls: "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-400", dot: "bg-cyan-500" },
+  COMPLETED: { label: "Completed", cls: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400", dot: "bg-blue-500" },
+  CANCELLED: { label: "Cancelled", cls: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400", dot: "bg-red-500" },
+  EXPIRED: { label: "Expired", cls: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400", dot: "bg-slate-400" },
+};
+
+function StatusBadge({ status }) {
+  const c = STATUS_MAP[status] || STATUS_MAP.PENDING;
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[8px] font-black ${c.cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+      {c.label}
+    </span>
+  );
+}
+
+function ModalShell({ title, subtitle, onClose, children, maxW = "max-w-md" }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+      <div className={`w-full ${maxW} max-h-[90dvh] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950 flex flex-col`}>
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+          <div>
+            <h3 className="text-xs font-black text-slate-900 dark:text-white">{title}</h3>
+            {subtitle && <p className="text-[8px] text-slate-400">{subtitle}</p>}
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><X size={14} /></button>
+        </div>
+        <div className="overflow-y-auto p-4 flex-1">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 export default function OfficerBookingsPage() {
-    const router = useRouter();
-
-    const [bookings, setBookings] = useState(
-        initialBookings
-    );
-
-    const [selectedBooking, setSelectedBooking] =
-        useState(null);
-
-    const [search, setSearch] = useState("");
-
-    const [statusFilter, setStatusFilter] =
-        useState("ALL");
-
-    const [centreFilter, setCentreFilter] =
-        useState("ALL");
-
-    const [dateFilter, setDateFilter] =
-        useState("TODAY");
-
-    const [lastAction, setLastAction] =
-        useState("Bookings are ready");
-
-    /* =======================================================
-       DATE
-    ======================================================== */
-
-    const today = "2026-09-01";
-
-    /* =======================================================
-       FILTER BOOKINGS
-    ======================================================== */
-
-    const filteredBookings = useMemo(() => {
-        return bookings.filter((booking) => {
-            const searchValue = search
-                .toLowerCase()
-                .trim();
-
-            const matchesSearch =
-                !searchValue ||
-                booking.farmer
-                    .toLowerCase()
-                    .includes(searchValue) ||
-                booking.farmerId
-                    .toLowerCase()
-                    .includes(searchValue) ||
-                booking.id
-                    .toLowerCase()
-                    .includes(searchValue);
-
-            const matchesStatus =
-                statusFilter === "ALL" ||
-                booking.status === statusFilter;
-
-            const matchesCentre =
-                centreFilter === "ALL" ||
-                booking.centre === centreFilter;
-
-            const matchesDate =
-                dateFilter === "ALL" ||
-                (dateFilter === "TODAY" &&
-                    booking.date === today);
-
-            return (
-                matchesSearch &&
-                matchesStatus &&
-                matchesCentre &&
-                matchesDate
-            );
-        });
-    }, [
-        bookings,
-        search,
-        statusFilter,
-        centreFilter,
-        dateFilter,
-    ]);
-
-    /* =======================================================
-       STATISTICS
-    ======================================================== */
-
-    const todayBookings = bookings.filter(
-        (booking) => booking.date === today
-    );
-
-    const confirmedCount = todayBookings.filter(
-        (booking) => booking.status === "CONFIRMED"
-    ).length;
-
-    const waitingCount = todayBookings.filter(
-        (booking) =>
-            booking.arrived &&
-            booking.status === "CONFIRMED"
-    ).length;
-
-    const completedCount = todayBookings.filter(
-        (booking) => booking.status === "COMPLETED"
-    ).length;
-
-    const cancelledCount = todayBookings.filter(
-        (booking) => booking.status === "CANCELLED"
-    ).length;
-
-    /* =======================================================
-       CENTRES
-    ======================================================== */
-
-    const centres = [
-        ...new Set(
-            bookings.map((booking) => booking.centre)
-        ),
-    ];
-
-    /* =======================================================
-       CONFIRM
-    ======================================================== */
-
-    const confirmBooking = (id) => {
-        const booking = bookings.find(
-            (item) => item.id === id
-        );
-
-        if (!booking) return;
-
-        setBookings((current) =>
-            current.map((item) =>
-                item.id === id
-                    ? {
-                        ...item,
-                        status: "CONFIRMED",
-                    }
-                    : item
-            )
-        );
-
-        setLastAction(
-            `${booking.farmer}'s booking confirmed`
-        );
-
-        setSelectedBooking((current) =>
-            current?.id === id
-                ? {
-                    ...current,
-                    status: "CONFIRMED",
-                }
-                : current
-        );
-    };
-
-    /* =======================================================
-       CANCEL
-    ======================================================== */
-
-    const cancelBooking = (id) => {
-        const booking = bookings.find(
-            (item) => item.id === id
-        );
-
-        if (!booking) return;
-
-        setBookings((current) =>
-            current.map((item) =>
-                item.id === id
-                    ? {
-                        ...item,
-                        status: "CANCELLED",
-                    }
-                    : item
-            )
-        );
-
-        setLastAction(
-            `${booking.farmer}'s booking cancelled`
-        );
-
-        setSelectedBooking((current) =>
-            current?.id === id
-                ? {
-                    ...current,
-                    status: "CANCELLED",
-                }
-                : current
-        );
-    };
-
-    /* =======================================================
-       MARK ARRIVED
-    ======================================================== */
-
-    const markArrived = (id) => {
-        const booking = bookings.find(
-            (item) => item.id === id
-        );
-
-        if (!booking) return;
-
-        if (booking.status !== "CONFIRMED") {
-            setLastAction(
-                "Booking must be confirmed first"
-            );
-            return;
-        }
-
-        setBookings((current) =>
-            current.map((item) =>
-                item.id === id
-                    ? {
-                        ...item,
-                        arrived: true,
-                    }
-                    : item
-            )
-        );
-
-        setLastAction(
-            `${booking.farmer} marked as arrived`
-        );
-
-        setSelectedBooking((current) =>
-            current?.id === id
-                ? {
-                    ...current,
-                    arrived: true,
-                }
-                : current
-        );
-    };
-
-    /* =======================================================
-       ADD TO QUEUE
-    ======================================================== */
-
-    const addToQueue = (id) => {
-        const booking = bookings.find(
-            (item) => item.id === id
-        );
-
-        if (!booking) return;
-
-        if (booking.status !== "CONFIRMED") {
-            setLastAction(
-                "Only confirmed bookings can enter the queue"
-            );
-            return;
-        }
-
-        if (!booking.arrived) {
-            setLastAction(
-                "Farmer must be marked arrived first"
-            );
-            return;
-        }
-
-        /*
-          In the real backend this should create a queue
-          entry associated with this booking.
-    
-          Example:
-          POST /api/officer/queue
-          {
-            bookingId: booking.id,
-            farmerId: booking.farmerId
-          }
-        */
-
-        setLastAction(
-            `Token assigned to ${booking.farmer}`
-        );
-
-        setSelectedBooking(null);
-
-        router.push(
-            `/officer/queue?bookingId=${booking.id}`
-        );
-    };
-
-    /* =======================================================
-       OPEN BOOKING
-    ======================================================== */
-
-    const openBooking = (booking) => {
-        setSelectedBooking(booking);
-    };
-
-    return (
-        <main className="h-full w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
-
-            <div className="mx-auto flex h-full min-h-0 w-full max-w-[1500px] flex-col overflow-hidden p-3 sm:p-4 lg:p-5">
-
-                {/* =================================================
-            HEADER
-        ================================================= */}
-
-                <header className="mb-3 flex shrink-0 items-center justify-between">
-
-                    <div>
-
-                        <div className="flex items-center gap-1.5">
-
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-
-                            <span className="text-[8px] font-black uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-400">
-                                Officer Operations
-                            </span>
-
-                        </div>
-
-                        <h1 className="mt-0.5 text-lg font-black tracking-tight text-slate-900 dark:text-white sm:text-xl">
-                            Bookings
-                        </h1>
-
-                    </div>
-
-                    <div className="flex items-center gap-2">
-
-                        <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 sm:flex dark:border-slate-800 dark:bg-slate-900">
-
-                            <MapPin
-                                size={13}
-                                className="text-emerald-600 dark:text-emerald-400"
-                            />
-
-                            <span className="text-[8px] font-bold text-slate-600 dark:text-slate-300">
-                                XYZ Farmer Centre
-                            </span>
-
-                        </div>
-
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-                            <CalendarDays size={13} />
-                        </div>
-
-                    </div>
-
-                </header>
-
-                {/* =================================================
-            SEARCH + FILTERS
-        ================================================= */}
-
-                <section className="mb-3 shrink-0 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
-                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-
-                        {/* SEARCH */}
-
-                        <div className="relative min-w-0 flex-1">
-
-                            <Search
-                                size={13}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                            />
-
-                            <input
-                                value={search}
-                                onChange={(e) =>
-                                    setSearch(e.target.value)
-                                }
-                                placeholder="Search farmer / booking ID..."
-                                className="
-                  h-9
-                  w-full
-                  rounded-lg
-                  border
-                  border-slate-200
-                  bg-slate-50
-                  pl-9
-                  pr-3
-                  text-[9px]
-                  font-semibold
-                  text-slate-700
-                  outline-none
-                  transition
-                  placeholder:text-slate-400
-                  focus:border-emerald-500
-                  focus:ring-2
-                  focus:ring-emerald-500/10
-                  dark:border-slate-700
-                  dark:bg-slate-950
-                  dark:text-slate-200
-                "
-                            />
-
-                        </div>
-
-                        {/* FILTERS */}
-
-                        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:w-auto">
-
-                            <FilterSelect
-                                value={dateFilter}
-                                onChange={setDateFilter}
-                                options={[
-                                    ["TODAY", "Today"],
-                                    ["ALL", "All Dates"],
-                                ]}
-                            />
-
-                            <FilterSelect
-                                value={statusFilter}
-                                onChange={setStatusFilter}
-                                options={[
-                                    ["ALL", "All Status"],
-                                    ["BOOKED", "Booked"],
-                                    ["CONFIRMED", "Confirmed"],
-                                    ["COMPLETED", "Completed"],
-                                    ["CANCELLED", "Cancelled"],
-                                ]}
-                            />
-
-                            <FilterSelect
-                                value={centreFilter}
-                                onChange={setCentreFilter}
-                                options={[
-                                    ["ALL", "All Centres"],
-                                    ...centres.map((centre) => [
-                                        centre,
-                                        centre.replace(
-                                            " Farmer Centre",
-                                            ""
-                                        ),
-                                    ]),
-                                ]}
-                            />
-
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setSearch("");
-                                    setStatusFilter("ALL");
-                                    setCentreFilter("ALL");
-                                    setDateFilter("TODAY");
-                                }}
-                                className="
-                  flex
-                  h-9
-                  items-center
-                  justify-center
-                  gap-1.5
-                  rounded-lg
-                  border
-                  border-slate-200
-                  bg-white
-                  px-3
-                  text-[8px]
-                  font-black
-                  text-slate-500
-                  transition
-                  hover:bg-slate-50
-                  dark:border-slate-700
-                  dark:bg-slate-900
-                  dark:text-slate-300
-                  dark:hover:bg-slate-800
-                "
-                            >
-                                <X size={11} />
-                                Clear
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-                {/* =================================================
-            LAST ACTION
-        ================================================= */}
-
-                <div className="mb-3 flex shrink-0 items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2 dark:border-emerald-950 dark:bg-emerald-950/20">
-
-                    <CheckCircle2
-                        size={13}
-                        className="shrink-0 text-emerald-600 dark:text-emerald-400"
-                    />
-
-                    <p className="truncate text-[8px] font-bold text-emerald-700 dark:text-emerald-400">
-                        {lastAction}
-                    </p>
-
-                </div>
-
-                {/* =================================================
-            STATISTICS
-        ================================================= */}
-
-                <div className="mb-3 grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-5">
-
-                    <BookingStat
-                        label="Today's Bookings"
-                        value={todayBookings.length}
-                        icon={<CalendarDays size={13} />}
-                        type="blue"
-                    />
-
-                    <BookingStat
-                        label="Confirmed"
-                        value={confirmedCount}
-                        icon={<Check size={13} />}
-                        type="green"
-                    />
-
-                    <BookingStat
-                        label="Waiting"
-                        value={waitingCount}
-                        icon={<Clock3 size={13} />}
-                        type="amber"
-                    />
-
-                    <BookingStat
-                        label="Completed"
-                        value={completedCount}
-                        icon={<PackageCheck size={13} />}
-                        type="purple"
-                    />
-
-                    <BookingStat
-                        label="Cancelled"
-                        value={cancelledCount}
-                        icon={<XCircle size={13} />}
-                        type="red"
-                    />
-
-                </div>
-
-                {/* =================================================
-            MAIN TABLE PANEL
-        ================================================= */}
-
-                <section
-                    className="
-    min-h-0
-    h-[432px]
-    max-h-[432px]
-    shrink-0
-    overflow-hidden
-    rounded-2xl
-    border
-    border-slate-200
-    bg-white
-    shadow-sm
-    dark:border-slate-800
-    dark:bg-slate-900
-  "
-                >
-                    {/* PANEL HEADER */}
-
-                    <div
-                        className="
-      flex
-      h-[52px]
-      shrink-0
-      items-center
-      justify-between
-      border-b
-      border-slate-200
-      px-3
-      sm:px-4
-      dark:border-slate-800
-    "
-                    >
-                        <div className="flex items-center gap-2">
-
-                            <div
-                                className="
-          flex
-          h-7
-          w-7
-          items-center
-          justify-center
-          rounded-lg
-          bg-emerald-50
-          text-emerald-600
-          dark:bg-emerald-950/40
-          dark:text-emerald-400
-        "
-                            >
-                                <ListFilter size={14} />
-                            </div>
-
-                            <div>
-                                <h2 className="text-xs font-black text-slate-900 dark:text-white">
-                                    Booking Records
-                                </h2>
-
-                                <p className="hidden text-[7px] text-slate-400 sm:block">
-                                    Manage farmer appointments and arrivals
-                                </p>
-                            </div>
-
-                        </div>
-
-                        <span
-                            className="
-        rounded-full
-        bg-slate-100
-        px-2
-        py-1
-        text-[7px]
-        font-black
-        text-slate-500
-        dark:bg-slate-800
-        dark:text-slate-400
-      "
-                        >
-                            {filteredBookings.length} records
-                        </span>
-
-                    </div>
-
-                    {/* =================================================
-      SCROLLABLE TABLE AREA
-  ================================================= */}
-
-                    <div
-                        className="
-      h-[380px]
-      min-h-0
-      overflow-y-auto
-      overscroll-contain
-      scrollbar-thin
-      scrollbar-track-transparent
-      scrollbar-thumb-slate-300
-      dark:scrollbar-thumb-slate-700
-    "
-                    >
-
-                        {/* DESKTOP HEADER */}
-
-                        <div
-                            className="
-        sticky
-        top-0
-        z-10
-        hidden
-        h-[38px]
-        grid-cols-[0.9fr_1.5fr_0.9fr_0.8fr_0.9fr_0.9fr_70px]
-        items-center
-        gap-3
-        border-b
-        border-slate-100
-        bg-slate-50
-        px-4
-        lg:grid
-        dark:border-slate-800
-        dark:bg-slate-900
-      "
-                        >
-                            <TableHeading>Booking</TableHeading>
-                            <TableHeading>Farmer</TableHeading>
-                            <TableHeading>Date</TableHeading>
-                            <TableHeading>Time</TableHeading>
-                            <TableHeading>Purpose</TableHeading>
-                            <TableHeading>Status</TableHeading>
-                            <TableHeading>Action</TableHeading>
-                        </div>
-
-                        {/* RECORDS */}
-
-                        {filteredBookings.length > 0 ? (
-
-                            filteredBookings.map((booking) => (
-                                <BookingRow
-                                    key={booking.id}
-                                    booking={booking}
-                                    onView={() => openBooking(booking)}
-                                />
-                            ))
-
-                        ) : (
-
-                            <EmptyBookings />
-
-                        )}
-
-                    </div>
-
-                </section>
-
-            </div>
-
-            {/* =================================================
-          BOOKING SHEET
-      ================================================= */}
-
-            {selectedBooking && (
-
-                <BookingSheet
-                    booking={selectedBooking}
-                    onClose={() =>
-                        setSelectedBooking(null)
-                    }
-                    onConfirm={() =>
-                        confirmBooking(selectedBooking.id)
-                    }
-                    onCancel={() =>
-                        cancelBooking(selectedBooking.id)
-                    }
-                    onArrived={() =>
-                        markArrived(selectedBooking.id)
-                    }
-                    onAddQueue={() =>
-                        addToQueue(selectedBooking.id)
-                    }
-                    onGoProcurement={() =>
-                        router.push(
-                            `/procurement?bookingId=${selectedBooking.id}`
-                        )
-                    }
-                />
-
-            )}
-
-        </main>
-    );
-}
-
-/* =========================================================
-   BOOKING STAT
-========================================================= */
-
-function BookingStat({
-    label,
-    value,
-    icon,
-    type,
-}) {
-    const styles = {
-        blue:
-            "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400",
-
-        green:
-            "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400",
-
-        amber:
-            "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400",
-
-        purple:
-            "bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400",
-
-        red:
-            "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400",
-    };
-
-    return (
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
-            <div
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${styles[type]}`}
-            >
-                {icon}
-            </div>
-
-            <div className="min-w-0">
-
-                <p className="truncate text-[7px] text-slate-400">
-                    {label}
-                </p>
-
-                <p className="text-sm font-black leading-none text-slate-900 dark:text-white">
-                    {value}
-                </p>
-
-            </div>
-
-        </div>
-    );
-}
-
-/* =========================================================
-   FILTER SELECT
-========================================================= */
-
-function FilterSelect({
-    value,
-    onChange,
-    options,
-}) {
-    return (
-        <div className="relative">
-
-            <Filter
-                size={10}
-                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-
-            <select
-                value={value}
-                onChange={(e) =>
-                    onChange(e.target.value)
-                }
-                className="
-          h-9
-          w-full
-          appearance-none
-          rounded-lg
-          border
-          border-slate-200
-          bg-white
-          pl-7
-          pr-7
-          text-[8px]
-          font-black
-          text-slate-600
-          outline-none
-          transition
-          focus:border-emerald-500
-          dark:border-slate-700
-          dark:bg-slate-900
-          dark:text-slate-300
-        "
-            >
-
-                {options.map(([value, label]) => (
-                    <option
-                        key={value}
-                        value={value}
-                    >
-                        {label}
-                    </option>
-                ))}
-
-            </select>
-
-        </div>
-    );
-}
-
-/* =========================================================
-   BOOKING ROW
-========================================================= */
-
-function BookingRow({
-    booking,
-    onView,
-}) {
-    return (
-        <div className="border-b border-slate-100 px-3 py-3 transition hover:bg-slate-50/70 sm:px-4 dark:border-slate-800 dark:hover:bg-slate-800/30">
-
-            {/* DESKTOP */}
-
-            <div className="hidden grid-cols-[0.9fr_1.5fr_0.9fr_0.8fr_0.9fr_0.9fr_70px] items-center gap-3 lg:grid">
-
-                <div>
-
-                    <p className="text-[8px] font-black text-slate-800 dark:text-slate-200">
-                        {booking.id}
-                    </p>
-
-                </div>
-
-                <div className="flex min-w-0 items-center gap-2">
-
-                    <Avatar name={booking.farmer} />
-
-                    <div className="min-w-0">
-
-                        <p className="truncate text-[9px] font-black text-slate-800 dark:text-slate-200">
-                            {booking.farmer}
-                        </p>
-
-                        <p className="text-[7px] text-emerald-600 dark:text-emerald-400">
-                            {booking.farmerId}
-                        </p>
-
-                    </div>
-
-                </div>
-
-                <p className="text-[8px] font-semibold text-slate-600 dark:text-slate-300">
-                    {formatDate(booking.date)}
-                </p>
-
-                <p className="text-[8px] font-semibold text-slate-600 dark:text-slate-300">
-                    {booking.time}
-                </p>
-
-                <PurposeBadge
-                    purpose={booking.purpose}
-                />
-
-                <div>
-
-                    <BookingStatus
-                        status={booking.status}
-                    />
-
-                </div>
-
-                <button
-                    type="button"
-                    onClick={onView}
-                    className="
-            flex
-            h-7
-            items-center
-            justify-center
-            gap-1
-            rounded-md
-            border
-            border-slate-200
-            bg-white
-            px-2
-            text-[7px]
-            font-black
-            text-slate-600
-            transition
-            hover:border-emerald-200
-            hover:bg-emerald-50
-            hover:text-emerald-700
-            dark:border-slate-700
-            dark:bg-slate-800
-            dark:text-slate-300
-            dark:hover:bg-emerald-950/30
-          "
-                >
-                    View
-                    <ChevronRight size={10} />
-                </button>
-
-            </div>
-
-            {/* MOBILE / TABLET */}
-
-            <div className="lg:hidden">
-
-                <div className="flex items-start justify-between gap-3">
-
-                    <div className="flex min-w-0 items-center gap-2">
-
-                        <Avatar name={booking.farmer} />
-
-                        <div className="min-w-0">
-
-                            <p className="truncate text-[9px] font-black text-slate-800 dark:text-slate-200">
-                                {booking.farmer}
-                            </p>
-
-                            <div className="flex items-center gap-2">
-
-                                <span className="text-[7px] font-bold text-emerald-600 dark:text-emerald-400">
-                                    {booking.id}
-                                </span>
-
-                                <span className="text-[7px] text-slate-400">
-                                    {booking.farmerId}
-                                </span>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    <BookingStatus
-                        status={booking.status}
-                    />
-
-                </div>
-
-                <div className="mt-2 grid grid-cols-3 gap-2">
-
-                    <MiniInfo
-                        label="Date"
-                        value={formatDate(booking.date)}
-                    />
-
-                    <MiniInfo
-                        label="Time"
-                        value={booking.time}
-                    />
-
-                    <MiniInfo
-                        label="Purpose"
-                        value={booking.purpose}
-                    />
-
-                </div>
-
-                <div className="mt-2 flex items-center justify-between">
-
-                    <div className="flex items-center gap-1.5">
-
-                        {booking.arrived && (
-                            <span className="flex items-center gap-1 text-[7px] font-bold text-emerald-600 dark:text-emerald-400">
-                                <UserCheck size={9} />
-                                Arrived
-                            </span>
-                        )}
-
-                        {booking.queueToken && (
-                            <span className="rounded-md bg-slate-100 px-1.5 py-1 text-[7px] font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                                Token #{booking.queueToken}
-                            </span>
-                        )}
-
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={onView}
-                        className="flex h-7 items-center gap-1 rounded-md bg-emerald-600 px-2.5 text-[7px] font-black text-white hover:bg-emerald-700"
-                    >
-                        View
-                        <ChevronRight size={10} />
-                    </button>
-
-                </div>
-
-            </div>
-
-        </div>
-    );
-}
-
-/* =========================================================
-   BOOKING SHEET
-========================================================= */
-
-function BookingSheet({
-    booking,
-    onClose,
-    onConfirm,
-    onCancel,
-    onArrived,
-    onAddQueue,
-    onGoProcurement,
-}) {
-    return (
-        <>
-
-            {/* BACKDROP */}
-
-            <div
-                className="fixed inset-0 z-40 bg-slate-950/30 backdrop-blur-[2px]"
-                onClick={onClose}
-            />
-
-            {/* SHEET */}
-
-            <aside
-                className="
-          fixed
-          right-0
-          top-0
-          z-50
-          flex
-          h-[100dvh]
-          w-full
-          max-w-[390px]
-          flex-col
-          border-l
-          border-slate-200
-          bg-white
-          shadow-2xl
-          dark:border-slate-800
-          dark:bg-slate-950
-        "
-            >
-
-                {/* HEADER */}
-
-                <div className="flex h-[62px] shrink-0 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-800">
-
-                    <div>
-
-                        <p className="text-[7px] font-black uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-400">
-                            Booking Details
-                        </p>
-
-                        <h2 className="mt-0.5 text-sm font-black text-slate-900 dark:text-white">
-                            {booking.id}
-                        </h2>
-
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
-                    >
-                        <X size={14} />
-                    </button>
-
-                </div>
-
-                {/* CONTENT */}
-
-                <div className="min-h-0 flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
-
-                    {/* FARMER */}
-
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
-
-                        <div className="flex items-center gap-2.5">
-
-                            <Avatar
-                                name={booking.farmer}
-                                large
-                            />
-
-                            <div className="min-w-0">
-
-                                <h3 className="truncate text-xs font-black text-slate-900 dark:text-white">
-                                    {booking.farmer}
-                                </h3>
-
-                                <p className="mt-0.5 text-[7px] text-slate-400">
-                                    {booking.farmerId}
-                                </p>
-
-                                <p className="mt-1 text-[7px] font-bold text-emerald-600 dark:text-emerald-400">
-                                    {booking.village}
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    {/* STATUS */}
-
-                    <div className="mt-2 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
-
-                        <div className="flex items-center justify-between">
-
-                            <span className="text-[7px] font-black uppercase tracking-wider text-slate-400">
-                                Booking Status
-                            </span>
-
-                            <BookingStatus
-                                status={booking.status}
-                            />
-
-                        </div>
-
-                        {booking.arrived && (
-                            <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-2 text-[7px] font-bold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
-                                <CheckCircle2 size={11} />
-                                Farmer has arrived
-                            </div>
-                        )}
-
-                    </div>
-
-                    {/* DETAILS */}
-
-                    <div className="mt-2 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
-
-                        <p className="mb-1 text-[7px] font-black uppercase tracking-wider text-slate-400">
-                            Appointment
-                        </p>
-
-                        <DetailLine
-                            label="Date"
-                            value={formatDate(booking.date)}
-                        />
-
-                        <DetailLine
-                            label="Time"
-                            value={booking.time}
-                        />
-
-                        <DetailLine
-                            label="Purpose"
-                            value={booking.purpose}
-                        />
-
-                        <DetailLine
-                            label="Centre"
-                            value={booking.centre}
-                        />
-
-                        <DetailLine
-                            label="Mobile"
-                            value={booking.phone}
-                        />
-
-                        <DetailLine
-                            label="Created"
-                            value={booking.createdAt}
-                        />
-
-                        {booking.queueToken && (
-                            <DetailLine
-                                label="Queue Token"
-                                value={`#${booking.queueToken}`}
-                            />
-                        )}
-
-                    </div>
-
-                    {/* WORKFLOW */}
-
-                    <div className="mt-2 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
-
-                        <p className="mb-3 text-[7px] font-black uppercase tracking-wider text-slate-400">
-                            Booking Workflow
-                        </p>
-
-                        <WorkflowStep
-                            label="Booking Created"
-                            active
-                            completed
-                        />
-
-                        <WorkflowLine />
-
-                        <WorkflowStep
-                            label="Officer Confirmation"
-                            active={
-                                booking.status === "CONFIRMED" ||
-                                booking.status === "COMPLETED"
-                            }
-                            completed={
-                                booking.status === "CONFIRMED" ||
-                                booking.status === "COMPLETED"
-                            }
-                        />
-
-                        <WorkflowLine />
-
-                        <WorkflowStep
-                            label="Farmer Arrival"
-                            active={booking.arrived}
-                            completed={booking.arrived}
-                        />
-
-                        <WorkflowLine />
-
-                        <WorkflowStep
-                            label="Added to Queue"
-                            active={
-                                !!booking.queueToken ||
-                                booking.status === "COMPLETED"
-                            }
-                            completed={
-                                !!booking.queueToken ||
-                                booking.status === "COMPLETED"
-                            }
-                        />
-
-                        <WorkflowLine />
-
-                        <WorkflowStep
-                            label="Procurement / Completion"
-                            active={
-                                booking.status === "COMPLETED"
-                            }
-                            completed={
-                                booking.status === "COMPLETED"
-                            }
-                        />
-
-                    </div>
-
-                </div>
-
-                {/* ACTIONS */}
-
-                <div className="shrink-0 border-t border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
-
-                    <p className="mb-2 text-[7px] font-black uppercase tracking-wider text-slate-400">
-                        Officer Actions
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-1.5">
-
-                        {booking.status === "BOOKED" && (
-                            <SheetButton
-                                icon={<Check size={11} />}
-                                label="Confirm Booking"
-                                primary
-                                onClick={onConfirm}
-                            />
-                        )}
-
-                        {booking.status === "CONFIRMED" &&
-                            !booking.arrived && (
-                                <SheetButton
-                                    icon={<UserCheck size={11} />}
-                                    label="Mark Arrived"
-                                    primary
-                                    onClick={onArrived}
-                                />
-                            )}
-
-                        {booking.status === "CONFIRMED" &&
-                            booking.arrived &&
-                            !booking.queueToken && (
-                                <SheetButton
-                                    icon={<Users size={11} />}
-                                    label="Add to Queue"
-                                    primary
-                                    onClick={onAddQueue}
-                                />
-                            )}
-
-                        {booking.status === "COMPLETED" && (
-                            <SheetButton
-                                icon={<PackageCheck size={11} />}
-                                label="Open Procurement"
-                                primary
-                                onClick={onGoProcurement}
-                            />
-                        )}
-
-                        {booking.status !== "CANCELLED" &&
-                            booking.status !== "COMPLETED" &&
-                            !booking.queueToken && (
-                                <SheetButton
-                                    icon={<X size={11} />}
-                                    label="Cancel Booking"
-                                    onClick={onCancel}
-                                />
-                            )}
-
-                        <SheetButton
-                            icon={<X size={11} />}
-                            label="Close"
-                            onClick={onClose}
-                        />
-
-                    </div>
-
-                </div>
-
-            </aside>
-
-        </>
-    );
-}
-
-/* =========================================================
-   WORKFLOW STEP
-========================================================= */
-
-function WorkflowStep({
-    label,
-    active,
-    completed,
-}) {
-    return (
-        <div className="flex items-center gap-2">
-
-            <div
-                className={`
-          flex
-          h-6
-          w-6
-          shrink-0
-          items-center
-          justify-center
-          rounded-full
-          ${completed
-                        ? "bg-emerald-600 text-white"
-                        : active
-                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
-                            : "bg-slate-100 text-slate-400 dark:bg-slate-800"
-                    }
-        `}
-            >
-                {completed ? (
-                    <Check size={11} />
-                ) : (
-                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                )}
-            </div>
-
-            <span
-                className={`
-          text-[8px]
-          font-bold
-          ${completed
-                        ? "text-slate-700 dark:text-slate-200"
-                        : "text-slate-400"
-                    }
-        `}
-            >
-                {label}
-            </span>
-
-        </div>
-    );
-}
-
-/* =========================================================
-   WORKFLOW LINE
-========================================================= */
-
-function WorkflowLine() {
-    return (
-        <div className="ml-3 h-3 border-l border-dashed border-slate-200 dark:border-slate-700" />
-    );
-}
-
-/* =========================================================
-   SHEET BUTTON
-========================================================= */
-
-function SheetButton({
-    icon,
-    label,
-    onClick,
-    primary = false,
-}) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={`
-        flex
-        h-8
-        items-center
-        justify-center
-        gap-1.5
-        rounded-lg
-        px-2
-        text-[7px]
-        font-black
-        transition
-
-        ${primary
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                    : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                }
-      `}
-        >
-            {icon}
-            {label}
-        </button>
-    );
-}
-
-/* =========================================================
-   BOOKING STATUS
-========================================================= */
-
-function BookingStatus({
-    status,
-}) {
-    const config = {
-        BOOKED: {
-            label: "Booked",
-            dot: "bg-amber-500",
-            className:
-                "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
-        },
-
-        CONFIRMED: {
-            label: "Confirmed",
-            dot: "bg-emerald-500",
-            className:
-                "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400",
-        },
-
-        COMPLETED: {
-            label: "Completed",
-            dot: "bg-blue-500",
-            className:
-                "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400",
-        },
-
-        CANCELLED: {
-            label: "Cancelled",
-            dot: "bg-red-500",
-            className:
-                "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400",
-        },
-    };
-
-    const current =
-        config[status] || config.BOOKED;
-
-    return (
-        <span
-            className={`
-        inline-flex
-        items-center
-        gap-1.5
-        rounded-full
-        px-2
-        py-1
-        text-[7px]
-        font-black
-        ${current.className}
-      `}
-        >
-
-            <span
-                className={`
-          h-1.5
-          w-1.5
-          rounded-full
-          ${current.dot}
-        `}
-            />
-
-            {current.label}
-
-        </span>
-    );
-}
-
-/* =========================================================
-   PURPOSE
-========================================================= */
-
-function PurposeBadge({
-    purpose,
-}) {
-    return (
-        <span className="inline-flex rounded-md bg-slate-100 px-2 py-1 text-[7px] font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-            {purpose}
-        </span>
-    );
-}
-
-/* =========================================================
-   AVATAR
-========================================================= */
-
-function Avatar({
-    name,
-    large = false,
-}) {
-    return (
-        <div
-            className={`
-        flex
-        shrink-0
-        items-center
-        justify-center
-        rounded-full
-        bg-emerald-100
-        font-black
-        text-emerald-700
-        dark:bg-emerald-950/50
-        dark:text-emerald-400
-
-        ${large
-                    ? "h-10 w-10 text-[10px]"
-                    : "h-8 w-8 text-[8px]"
-                }
-      `}
-        >
-            {getInitials(name)}
-        </div>
-    );
-}
-
-/* =========================================================
-   MINI INFO
-========================================================= */
-
-function MiniInfo({
-    label,
-    value,
-}) {
-    return (
-        <div className="rounded-lg bg-slate-50 px-2 py-1.5 dark:bg-slate-800/60">
-
-            <p className="text-[6px] text-slate-400">
-                {label}
-            </p>
-
-            <p className="mt-0.5 truncate text-[7px] font-black text-slate-700 dark:text-slate-300">
-                {value}
-            </p>
-
-        </div>
-    );
-}
-
-/* =========================================================
-   DETAIL LINE
-========================================================= */
-
-function DetailLine({
-    label,
-    value,
-}) {
-    return (
-        <div className="flex items-center justify-between border-b border-slate-100 py-2 last:border-0 dark:border-slate-800">
-
-            <span className="text-[7px] text-slate-400">
-                {label}
-            </span>
-
-            <span className="max-w-[180px] truncate text-right text-[8px] font-bold text-slate-700 dark:text-slate-300">
-                {value}
-            </span>
-
-        </div>
-    );
-}
-
-/* =========================================================
-   TABLE HEADING
-========================================================= */
-
-function TableHeading({
-    children,
-}) {
-    return (
-        <span className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
-            {children}
-        </span>
-    );
-}
-
-/* =========================================================
-   EMPTY
-========================================================= */
-
-function EmptyBookings() {
-    return (
-        <div className="flex min-h-[300px] flex-col items-center justify-center px-5 text-center">
-
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800">
-
-                <CalendarDays size={20} />
-
-            </div>
-
-            <h3 className="mt-3 text-xs font-black text-slate-800 dark:text-slate-200">
-                No bookings found
-            </h3>
-
-            <p className="mt-1 text-[8px] text-slate-400">
-                Try changing your search or filters.
-            </p>
-
-        </div>
-    );
-}
-
-/* =========================================================
-   FORMAT DATE
-========================================================= */
-
-function formatDate(date) {
-    const parsed = new Date(
-        `${date}T00:00:00`
-    );
-
-    return parsed.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
+  const router = useRouter();
+  const today = toDateStr();
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [centreFilter, setCentreFilter] = useState("ALL");
+  const [dateFilter, setDateFilter] = useState("TODAY");
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [modal, setModal] = useState(null); // 'scanner' | 'history' | 'rebook' | { type: 'cancel' | 'no-show', action: string }
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [lastAction, setLastAction] = useState("");
+
+  const apiUrl = dateFilter === "ALL" ? "/api/officer/bookings" : `/api/officer/bookings?date=${today}`;
+  const { data, error, isLoading, mutate } = useSWR(apiUrl, fetcher, { refreshInterval: 5000, keepPreviousData: true });
+  const bookings = data?.bookings || [];
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return bookings.filter((b) => {
+      const matchSearch = !q || [b.farmer?.name, b.farmer?._id, b.farmer?.mobile, b.bookingId, b.queue?.tokenNumber].some((v) => String(v || "").toLowerCase().includes(q));
+      const matchStatus = statusFilter === "ALL" || b.status === statusFilter;
+      const matchCentre = centreFilter === "ALL" || b.centre?.name === centreFilter;
+      const matchDate = dateFilter === "ALL" || toDateStr(b.date) === today;
+      return matchSearch && matchStatus && matchCentre && matchDate;
     });
+  }, [bookings, search, statusFilter, centreFilter, dateFilter, today]);
+
+  const centres = useMemo(() => [...new Set(bookings.map((b) => b.centre?.name).filter(Boolean))], [bookings]);
+
+  const updateBooking = async (b, action, extra = {}) => {
+    if (!b) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/officer/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ bookingId: b.bookingId, action, ...extra }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) throw new Error(result.message || "Action failed");
+      setLastAction(`${action} updated for ${b.farmer?.name || "farmer"}`);
+      setModal(null);
+      await mutate();
+      setSelectedBooking(result.booking || bookings.find((x) => x.bookingId === b.bookingId) || null);
+    } catch (err) {
+      setLastAction(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQr = async (text) => {
+    try {
+      const id = JSON.parse(text)?.bookingId || text.trim();
+      const match = bookings.find((b) => b.bookingId?.toLowerCase() === id.toLowerCase());
+      if (match) {
+        setSelectedBooking(match);
+        setModal(null);
+        setLastAction(`QR identified: ${id}`);
+        return;
+      }
+      const res = await fetch(`/api/officer/bookings?search=${encodeURIComponent(id)}`, { credentials: "include" });
+      const d = await res.json();
+      const b = d?.bookings?.find((x) => x.bookingId?.toLowerCase() === id.toLowerCase());
+      if (!b) throw new Error("Booking not found at your centre");
+      setSelectedBooking(b);
+      setModal(null);
+    } catch (err) {
+      setLastAction(err.message);
+    }
+  };
+
+  return (
+    <main className="h-full w-full overflow-hidden bg-slate-50 dark:bg-slate-950 select-none p-3 sm:p-4 lg:p-5 flex flex-col">
+      {/* Header */}
+      <header className="mb-3 flex shrink-0 items-center justify-between">
+        <div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="text-[8px] font-black uppercase text-emerald-600 tracking-wider">Officer Desk</span>
+          </div>
+          <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">Procurement Bookings</h1>
+        </div>
+        <div className="flex gap-1.5">
+          <button onClick={() => setModal("scanner")} className="flex h-8 items-center gap-1 rounded-lg bg-emerald-600 px-3 text-[8px] font-black text-white hover:bg-emerald-700">
+            <ScanLine size={12} /> Scan QR
+          </button>
+          <button onClick={() => mutate()} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 text-slate-500">
+            <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
+          </button>
+        </div>
+      </header>
+
+      {lastAction && (
+        <div className="mb-2.5 flex items-center justify-between rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-[8px] font-bold text-emerald-600">
+          <div className="flex items-center gap-1.5"><CheckCircle2 size={12} /> {lastAction}</div>
+          <X size={12} className="cursor-pointer" onClick={() => setLastAction("")} />
+        </div>
+      )}
+
+      {/* Stats Counter Strip */}
+      <div className="mb-3 grid grid-cols-3 sm:grid-cols-6 gap-2 shrink-0">
+        {[
+          { label: "Pending", count: bookings.filter((b) => b.status === "PENDING").length, icon: Clock, c: "text-amber-500" },
+          { label: "Confirmed", count: bookings.filter((b) => b.status === "CONFIRMED").length, icon: CheckCircle2, c: "text-emerald-500" },
+          { label: "Waiting", count: bookings.filter((b) => b.status === "CHECKED_IN" && b.queue?.status === "WAITING").length, icon: Users, c: "text-cyan-500" },
+          { label: "Processing", count: bookings.filter((b) => b.queue?.status === "PROCESSING").length, icon: Wheat, c: "text-violet-500" },
+          { label: "Completed", count: bookings.filter((b) => b.status === "COMPLETED").length, icon: PackageCheck, c: "text-blue-500" },
+          { label: "Cancelled", count: bookings.filter((b) => b.status === "CANCELLED").length, icon: Ban, c: "text-red-500" },
+        ].map((s) => (
+          <div key={s.label} className="rounded-xl border border-slate-200/80 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex justify-between items-center text-slate-400">
+              <span className="text-[7px] font-bold uppercase">{s.label}</span>
+              <s.icon size={11} className={s.c} />
+            </div>
+            <p className="mt-0.5 text-base font-black text-slate-900 dark:text-white leading-none">{s.count}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter Toolbar */}
+      <div className="mb-3 flex flex-col sm:flex-row gap-2 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
+        <div className="relative flex-1">
+          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search booking ID, farmer, mobile or token..."
+            className="h-8 w-full rounded-lg bg-slate-50 pl-7 pr-3 text-[9px] font-bold outline-none dark:bg-slate-800 dark:text-white"
+          />
+        </div>
+        <div className="flex gap-1.5">
+          <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="h-8 rounded-lg bg-slate-50 px-2 text-[8px] font-bold dark:bg-slate-800">
+            <option value="TODAY">Today</option>
+            <option value="ALL">All Dates</option>
+          </select>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-8 rounded-lg bg-slate-50 px-2 text-[8px] font-bold dark:bg-slate-800">
+            <option value="ALL">All Status</option>
+            {Object.keys(STATUS_MAP).map((k) => <option key={k} value={k}>{STATUS_MAP[k].label}</option>)}
+          </select>
+          <select value={centreFilter} onChange={(e) => setCentreFilter(e.target.value)} className="h-8 rounded-lg bg-slate-50 px-2 text-[8px] font-bold dark:bg-slate-800">
+            <option value="ALL">All Centres</option>
+            {centres.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Booking Records Feed */}
+      <div className="flex-1 min-h-0 rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs dark:border-slate-800 dark:bg-slate-900 flex flex-col">
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+          {filtered.map((b) => (
+            <div
+              key={b._id || b.bookingId}
+              onClick={() => setSelectedBooking(b)}
+              className="flex cursor-pointer items-center justify-between p-3 transition hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 font-bold text-xs">
+                  {b.farmer?.name?.[0] || "F"}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate text-[10px] font-black text-slate-900 dark:text-white">{b.farmer?.name || "Unknown"}</p>
+                    <span className="text-[7px] text-emerald-600 font-bold">{b.bookingId}</span>
+                  </div>
+                  <p className="text-[8px] text-slate-400 truncate mt-0.5">
+                    {fmtDate(b.date)} • {fmtTime(b.slot?.startTime || b.startTime)} • {b.commodity?.name || "Produce"} ({b.expectedQuantity ?? "--"} Qtl)
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <StatusBadge status={b.status} />
+                <ChevronRight size={13} className="text-slate-300" />
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div className="flex h-48 flex-col items-center justify-center text-slate-400 text-[9px]">
+              <Calendar size={20} className="mb-1 opacity-50" /> No records found
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Drawer: Detailed Booking Sheet */}
+      {selectedBooking && (
+        <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col bg-white shadow-2xl border-l border-slate-200 dark:bg-slate-950 dark:border-slate-800 p-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <span className="text-[7px] font-bold uppercase text-emerald-600">Booking Pass</span>
+              <h2 className="text-xs font-black">{selectedBooking.bookingId}</h2>
+            </div>
+            <div className="flex gap-1">
+              <button onClick={() => setModal("history")} className="rounded-lg p-1.5 border border-slate-200 text-slate-500"><History size={12} /></button>
+              <button onClick={() => setSelectedBooking(null)} className="rounded-lg p-1.5 border border-slate-200 text-slate-500"><X size={12} /></button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-3 py-3 text-[8px]">
+            <div className="flex justify-between items-center rounded-xl bg-slate-50 dark:bg-slate-900 p-2.5">
+              <div>
+                <span className="text-slate-400 uppercase text-[7px] font-bold">State</span>
+                <div><StatusBadge status={selectedBooking.status} /></div>
+              </div>
+              {selectedBooking.queue?.tokenNumber && (
+                <div className="text-right">
+                  <span className="text-slate-400 uppercase text-[7px] font-bold">Token</span>
+                  <p className="text-sm font-black text-emerald-600">{selectedBooking.queue.tokenNumber}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 space-y-1">
+              <span className="font-black text-slate-900 dark:text-white">Farmer Profile</span>
+              <div className="flex justify-between text-slate-500"><span>Name</span><span className="font-bold text-slate-800 dark:text-slate-200">{selectedBooking.farmer?.name}</span></div>
+              <div className="flex justify-between text-slate-500"><span>Mobile</span><span className="font-bold text-slate-800 dark:text-slate-200">{selectedBooking.farmer?.mobile || "--"}</span></div>
+              <div className="flex justify-between text-slate-500"><span>Verified</span><span className="font-bold text-emerald-600">{selectedBooking.farmer?.verification?.isVerified ? "Yes" : "Pending"}</span></div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 space-y-1">
+              <span className="font-black text-slate-900 dark:text-white">Appointment Details</span>
+              <div className="flex justify-between text-slate-500"><span>Centre</span><span className="font-bold text-slate-800 dark:text-slate-200">{selectedBooking.centre?.name}</span></div>
+              <div className="flex justify-between text-slate-500"><span>Date / Slot</span><span className="font-bold text-slate-800 dark:text-slate-200">{fmtDate(selectedBooking.date)} ({fmtTime(selectedBooking.slot?.startTime)})</span></div>
+              <div className="flex justify-between text-slate-500"><span>Produce</span><span className="font-bold text-slate-800 dark:text-slate-200">{selectedBooking.commodity?.name} ({selectedBooking.expectedQuantity} Qtl)</span></div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+            {selectedBooking.status === "PENDING" && (
+              <button onClick={() => updateBooking(selectedBooking, "CONFIRM")} className="col-span-2 h-8 rounded-lg bg-emerald-600 text-white font-black text-[8px]">Confirm Booking</button>
+            )}
+            {selectedBooking.status === "CONFIRMED" && (
+              <button onClick={() => updateBooking(selectedBooking, "ARRIVE")} className="col-span-2 h-8 rounded-lg bg-emerald-600 text-white font-black text-[8px]">Check In Farmer</button>
+            )}
+            {selectedBooking.status === "CHECKED_IN" && (
+              <button onClick={() => router.push(`/procurement?bookingId=${selectedBooking.bookingId}`)} className="col-span-2 h-8 rounded-lg bg-emerald-600 text-white font-black text-[8px]">Start Procurement</button>
+            )}
+            <button onClick={() => setModal("rebook")} className="h-8 rounded-lg border border-slate-200 font-bold text-[8px]">Rebook</button>
+            <button onClick={() => setModal({ type: "cancel", action: "CANCEL" })} className="h-8 rounded-lg border border-red-200 bg-red-50 text-red-600 font-bold text-[8px]">Cancel</button>
+          </div>
+        </aside>
+      )}
+
+      {/* QR Scanner Modal */}
+      {modal === "scanner" && (
+        <ModalShell title="Scan Gate Pass QR" onClose={() => setModal(null)}>
+          <div id="qr-reader" className="min-h-[260px] bg-black rounded-xl overflow-hidden" />
+          <ScannerHandler onResult={handleQr} />
+        </ModalShell>
+      )}
+
+      {/* History Timeline Modal */}
+      {modal === "history" && selectedBooking && (
+        <ModalShell title="Booking Log" subtitle={selectedBooking.bookingId} onClose={() => setModal(null)}>
+          <div className="space-y-3 text-[8px] pl-2 border-l border-dashed border-emerald-500">
+            <div><p className="font-black">Created</p><span className="text-slate-400">{fmtDate(selectedBooking.createdAt)}</span></div>
+            <div><p className="font-black">Status Update</p><span className="text-slate-400">{selectedBooking.status}</span></div>
+          </div>
+        </ModalShell>
+      )}
+
+      {/* Unified Cancellation / No-Show Modal */}
+      {modal?.type === "cancel" && (
+        <ModalShell title="Cancel Appointment" subtitle="Provide a mandatory reason" onClose={() => setModal(null)}>
+          <textarea
+            rows={3}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Type reason..."
+            className="w-full rounded-lg border border-slate-200 p-2 text-xs outline-none dark:bg-slate-900"
+          />
+          <button
+            disabled={!reason.trim() || loading}
+            onClick={() => updateBooking(selectedBooking, modal.action, { cancellationReason: reason })}
+            className="mt-2 w-full rounded-lg bg-red-600 py-1.5 text-[9px] font-bold text-white hover:bg-red-700 disabled:opacity-50"
+          >
+            Confirm Cancellation
+          </button>
+        </ModalShell>
+      )}
+
+      {/* Rebook Modal */}
+      {modal === "rebook" && selectedBooking && (
+        <ModalShell title="Rebook Farmer" onClose={() => setModal(null)}>
+          <RebookContent
+            booking={selectedBooking}
+            onSuccess={(b) => { setModal(null); mutate(); if (b) setSelectedBooking(b); }}
+          />
+        </ModalShell>
+      )}
+    </main>
+  );
 }
 
-/* =========================================================
-   INITIALS
-========================================================= */
+function ScannerHandler({ onResult }) {
+  useEffect(() => {
+    const scanner = new Html5Qrcode("qr-reader");
+    scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, (txt) => { scanner.stop().catch(() => {}); onResult(txt); }, () => {});
+    return () => { scanner.stop().catch(() => {}); };
+  }, [onResult]);
+  return null;
+}
 
-function getInitials(name) {
-    return name
-        .split(" ")
-        .map((word) => word[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase();
+function RebookContent({ booking, onSuccess }) {
+  const [date, setDate] = useState(toDateStr());
+  const [slotId, setSlotId] = useState("");
+  const [slots, setSlots] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/officer/slots?date=${date}`, { credentials: "include" })
+      .then((res) => res.json())
+      .then((res) => setSlots((res?.data?.slots || []).filter((s) => s.status === "AVAILABLE")))
+      .catch(() => setSlots([]));
+  }, [date]);
+
+  const submit = async () => {
+    setLoading(true);
+    const res = await fetch("/api/officer/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ bookingId: booking.bookingId, action: "REBOOK", slotId }),
+    });
+    const data = await res.json();
+    setLoading(false);
+    if (data.success) onSuccess(data.booking);
+  };
+
+  return (
+    <div className="space-y-2 text-[8px]">
+      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-lg border p-1.5 font-bold dark:bg-slate-900" />
+      <div className="max-h-36 overflow-y-auto space-y-1">
+        {slots.map((s) => (
+          <button
+            key={s._id || s.id}
+            onClick={() => setSlotId(s._id || s.id)}
+            className={`w-full rounded-lg border p-2 text-left ${slotId === (s._id || s.id) ? "border-emerald-500 bg-emerald-50/20" : ""}`}
+          >
+            {fmtTime(s.startTime)} - {fmtTime(s.endTime)} ({s.availableCapacity || s.capacity} remaining)
+          </button>
+        ))}
+      </div>
+      <button disabled={!slotId || loading} onClick={submit} className="w-full rounded-lg bg-emerald-600 py-1.5 font-bold text-white disabled:opacity-50">
+        Confirm Rebooking
+      </button>
+    </div>
+  );
 }

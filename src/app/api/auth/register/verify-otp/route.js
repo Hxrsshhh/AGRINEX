@@ -1,428 +1,92 @@
 import { NextResponse } from "next/server";
-
 import bcrypt from "bcryptjs";
-
 import connectDB from "@/lib/db";
+import Farmer from "@/models/Farmer";
+import { getOTP, deleteOTP } from "@/lib/otpStore";
 
-import User from "@/models/User";
-
-import {
-  getOTP,
-  deleteOTP,
-} from "@/lib/otpStore";
+const json = (success, message, status = 200, extra = {}) =>
+  NextResponse.json({ success, message, ...extra }, { status });
 
 export async function POST(request) {
   try {
-    const {
-      fullName,
-      mobileNumber,
-      email,
-      password,
-      confirmPassword,
-      otp,
-    } = await request.json();
+    const { fullName, mobileNumber, email, password, confirmPassword, otp } = await request.json();
 
-    // ============================================================
-    // 1. VALIDATE OTP FORMAT
-    // ============================================================
+    if (!otp || !/^\d{4}$/.test(String(otp))) return json(false, "Enter a valid 4-digit OTP", 400);
 
-    if (!otp || !/^\d{4}$/.test(String(otp))) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Enter a valid 4-digit OTP",
-        },
-        { status: 400 }
-      );
-    }
+    const mobile = String(mobileNumber || "").replace(/\D/g, "").trim();
+    if (!mobile) return json(false, "Mobile number is required", 400);
+    if (!/^[6-9]\d{9}$/.test(mobile)) return json(false, "Enter a valid Indian mobile number", 400);
 
-    // ============================================================
-    // 2. NORMALIZE MOBILE
-    // ============================================================
-
-    const mobile = String(mobileNumber || "")
-      .replace(/\D/g, "")
-      .trim();
-
-    if (!/^[6-9]\d{9}$/.test(mobile)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Enter a valid Indian mobile number",
-        },
-        { status: 400 }
-      );
-    }
-
-    // ============================================================
-    // 3. CHECK STORED OTP
-    // ============================================================
-
-    const storedOTP = getOTP(mobile);
-
-    if (!storedOTP) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "OTP expired or not found. Please request a new OTP.",
-        },
-        { status: 400 }
-      );
-    }
-
-    // ============================================================
-    // 4. CHECK OTP EXPIRY
-    // ============================================================
-
-    if (Date.now() > storedOTP.expiresAt) {
+    const stored = getOTP(mobile);
+    if (!stored) return json(false, "OTP expired or not found. Please request a new OTP.", 400);
+    if (Date.now() > stored.expiresAt) {
       deleteOTP(mobile);
-
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "OTP has expired. Please request a new OTP.",
-        },
-        { status: 400 }
-      );
+      return json(false, "OTP has expired. Please request a new OTP.", 400);
     }
-
-    // ============================================================
-    // 5. VERIFY OTP
-    // ============================================================
-
-    if (String(otp) !== String(storedOTP.otp)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid OTP",
-        },
-        { status: 400 }
-      );
-    }
-
-    // ============================================================
-    // 6. OTP VERIFIED
-    //
-    // OTP can no longer be reused.
-    // ============================================================
-
+    if (String(otp) !== String(stored.otp)) return json(false, "Invalid OTP", 400);
     deleteOTP(mobile);
 
-    // ============================================================
-    // 7. VALIDATE NAME
-    // ============================================================
+    const name = String(fullName || "").trim();
+    if (!name || name.length < 2) return json(false, !name ? "Full name is required" : "Enter a valid full name", 400);
 
-    if (!fullName?.trim()) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Full name is required",
-        },
-        { status: 400 }
-      );
-    }
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!normalizedEmail) return json(false, "Email is required", 400);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return json(false, "Enter a valid email address", 400);
 
-    if (fullName.trim().length < 2) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Enter a valid full name",
-        },
-        { status: 400 }
-      );
-    }
-
-    // ============================================================
-    // 8. NORMALIZE EMAIL
-    // ============================================================
-
-    const normalizedEmail = String(email || "")
-      .trim()
-      .toLowerCase();
-
-    const emailRegex =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(normalizedEmail)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Enter a valid email address",
-        },
-        { status: 400 }
-      );
-    }
-
-    // ============================================================
-    // 9. VALIDATE PASSWORD
-    // ============================================================
-
-    if (!password) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Password is required",
-        },
-        { status: 400 }
-      );
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Password must contain at least 6 characters",
-        },
-        { status: 400 }
-      );
-    }
-
-    if (password !== confirmPassword) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Passwords do not match",
-        },
-        { status: 400 }
-      );
-    }
-
-    // ============================================================
-    // 10. OTP IS CORRECT
-    //
-    // ONLY NOW CONNECT TO DATABASE
-    // ============================================================
+    if (!password) return json(false, "Password is required", 400);
+    if (password.length < 6) return json(false, "Password must contain at least 6 characters", 400);
+    if (password !== confirmPassword) return json(false, "Passwords do not match", 400);
 
     await connectDB();
 
-    // ============================================================
-    // 11. CHECK EXISTING MOBILE
-    // ============================================================
+    if (await Farmer.exists({ mobile })) return json(false, "An account with this mobile number already exists", 409);
+    if (await Farmer.exists({ email: normalizedEmail })) return json(false, "An account with this email already exists", 409);
 
-    const existingMobile = await User.findOne({
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const farmer = await Farmer.create({
+      name,
       mobile,
-    });
-
-    if (existingMobile) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "An account with this mobile number already exists",
-        },
-        { status: 409 }
-      );
-    }
-
-    // ============================================================
-    // 12. CHECK EXISTING EMAIL
-    // ============================================================
-
-    const existingEmail = await User.findOne({
       email: normalizedEmail,
-    });
-
-    if (existingEmail) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "An account with this email already exists",
-        },
-        { status: 409 }
-      );
-    }
-
-    // ============================================================
-    // 13. HASH PASSWORD
-    // ============================================================
-
-    const hashedPassword =
-      await bcrypt.hash(password, 12);
-
-    // ============================================================
-    // 14. CREATE USER
-    //
-    // OTP SUCCESSFUL
-    //       ↓
-    // USER CREATED
-    //       ↓
-    // PHONE VERIFIED
-    // ============================================================
-
-    const user = await User.create({
-      name: fullName.trim(),
-
-      mobile,
-
-      email: normalizedEmail,
-
       password: hashedPassword,
-
       role: "FARMER",
-
-      // ========================================================
-      // VERIFICATION
-      // ========================================================
-
-      verification: {
-        // Official/admin verification
-        isVerified: false,
-
-        // Mobile OTP verification
-        isPhoneVerified: true,
-
-        verifiedAt: null,
-
-        verifiedBy: null,
-
-        verifiedAtCentre: null,
-      },
-
-      // ========================================================
-      // ACCOUNT STATUS
-      // ========================================================
-
+      isPhoneVerified: true,
       isActive: true,
-
-      // ========================================================
-      // ONBOARDING
-      // ========================================================
-
+      verification: { isVerified: false, verifiedAt: null, verifiedBy: null, verifiedAtCentre: null, rejectionReason: null },
       onboardingCompleted: false,
-
       onboardingSkipped: false,
-
       onboardingCompletedAt: null,
+      farmLocation: { state: null, district: null, village: null, pincode: null },
+      farm: { landArea: null, landUnit: "Acre", mainCrop: null },
+      preferredCentre: null,
+      documents: [],
     });
 
-    // ============================================================
-    // 15. SUCCESS RESPONSE
-    // ============================================================
-
-    return NextResponse.json(
-      {
-        success: true,
-
-        message:
-          "Account created and mobile number verified successfully",
-
-        userId: user._id.toString(),
-
-        user: {
-          id: user._id.toString(),
-
-          name: user.name,
-
-          mobile: user.mobile,
-
-          email: user.email,
-
-          role: user.role,
-
-          // ======================================================
-          // VERIFICATION
-          // ======================================================
-
-          verification: {
-            isVerified:
-              user.verification?.isVerified ??
-              false,
-
-            isPhoneVerified:
-              user.verification?.isPhoneVerified ??
-              true,
-
-            verifiedAt:
-              user.verification?.verifiedAt ??
-              null,
-          },
-
-          // Convenience property
-          isPhoneVerified: true,
-
-          // ======================================================
-          // ACCOUNT
-          // ======================================================
-
-          isActive: user.isActive,
-
-          // ======================================================
-          // ONBOARDING
-          // ======================================================
-
-          onboardingCompleted:
-            user.onboardingCompleted,
-
-          onboardingSkipped:
-            user.onboardingSkipped,
+    return json(true, "Account created and mobile number verified successfully", 201, {
+      userId: farmer._id.toString(),
+      farmer: {
+        id: farmer._id.toString(),
+        name: farmer.name,
+        mobile: farmer.mobile,
+        email: farmer.email,
+        role: farmer.role,
+        isPhoneVerified: farmer.isPhoneVerified,
+        verification: {
+          isVerified: farmer.verification?.isVerified ?? false,
+          verifiedAt: farmer.verification?.verifiedAt ?? null,
         },
+        isActive: farmer.isActive,
+        onboardingCompleted: farmer.onboardingCompleted,
+        onboardingSkipped: farmer.onboardingSkipped,
+        preferredCentre: farmer.preferredCentre || null,
       },
-      { status: 201 }
-    );
+    });
   } catch (error) {
-    console.error(
-      "VERIFY OTP / CREATE USER ERROR:",
-      error
-    );
-
-    // ============================================================
-    // DUPLICATE KEY ERROR
-    // ============================================================
-
+    console.error("VERIFY OTP / CREATE FARMER ERROR:", error);
     if (error?.code === 11000) {
-      const duplicateField =
-        Object.keys(
-          error.keyPattern || {}
-        )[0];
-
-      if (duplicateField === "mobile") {
-        return NextResponse.json(
-          {
-            success: false,
-            message:
-              "Mobile number is already registered",
-          },
-          { status: 409 }
-        );
-      }
-
-      if (duplicateField === "email") {
-        return NextResponse.json(
-          {
-            success: false,
-            message:
-              "Email is already registered",
-          },
-          { status: 409 }
-        );
-      }
-
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "An account with these details already exists",
-        },
-        { status: 409 }
-      );
+      const field = Object.keys(error.keyPattern || {})[0];
+      const msg = field === "mobile" ? "Mobile number is already registered" : field === "email" ? "Email is already registered" : "An account with these details already exists";
+      return json(false, msg, 409);
     }
-
-    // ============================================================
-    // GENERAL ERROR
-    // ============================================================
-
-    return NextResponse.json(
-      {
-        success: false,
-        message:
-          error?.message ||
-          "Unable to create account",
-      },
-      { status: 500 }
-    );
+    return json(false, error?.message || "Unable to create farmer account", 500);
   }
 }

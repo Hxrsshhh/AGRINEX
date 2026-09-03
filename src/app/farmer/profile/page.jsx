@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   User, Camera, MapPin, Phone, Mail, Sprout, ShieldCheck, BadgeCheck,
   Ruler, FileText, CheckCircle2, X, Building2, Eye, Download, Clock3,
-  AlertCircle, Globe2, Bell, Smartphone, MessageCircle, CalendarDays, Activity,
-  Sparkles, RefreshCw
+  Globe2, Bell, Smartphone, MessageCircle, CalendarDays, Activity,
+  Sparkles, RefreshCw, ArrowRight
 } from "lucide-react";
 
 const EMPTY_FARMER = {
@@ -26,22 +27,35 @@ const EMPTY_FARMER = {
   designation: null,
   officerCentre: null,
   adminLevel: null,
-  preferredLanguage: "en",
+  preferredLanguage: "English",
   notifications: { sms: true, whatsapp: true, push: true },
   lastLogin: null,
 };
 
 const LANGUAGES = {
-  en: "English", hi: "हिन्दी (Hindi)", bn: "বাংলা (Bengali)",
-  or: "ଓଡ଼ିଆ (Odia)", te: "తెలుగు (Telugu)", mr: "मराठी (Marathi)",
+  en: "English",
+  English: "English",
+  hi: "हिन्दी (Hindi)",
+  "हिन्दी (Hindi)": "हिन्दी (Hindi)",
+  bn: "বাংলা (Bengali)",
+  or: "ଓଡ଼ିଆ (Odia)",
+  te: "తెలుగు (Telugu)",
+  "తెలుగు (Telugu)": "తెలుగు (Telugu)",
+  mr: "मराठी (Marathi)",
+  "मराठी (Marathi)": "मराठी (Marathi)",
+  "ਪੰਜਾਬੀ (Punjabi)": "ਪੰਜਾਬੀ (Punjabi)",
+  "தமிழ் (Tamil)": "தமிழ் (Tamil)",
 };
 
 const DOC_TYPES = {
-  IDENTITY_PROOF: "Identity Proof", LAND_RECORD: "Land Record",
-  BANK_PROOF: "Bank Proof", OTHER: "Other",
+  IDENTITY_PROOF: "Identity Proof",
+  LAND_RECORD: "Land Record",
+  BANK_PROOF: "Bank Proof",
+  OTHER: "Other",
 };
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [farmer, setFarmer] = useState(EMPTY_FARMER);
   const [centres, setCentres] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +77,8 @@ export default function ProfilePage() {
   };
 
   const normalizeFarmer = (data = {}) => ({
-    ...EMPTY_FARMER, ...data,
+    ...EMPTY_FARMER,
+    ...data,
     avatar: { ...EMPTY_FARMER.avatar, ...(data?.avatar || {}) },
     farmLocation: { ...EMPTY_FARMER.farmLocation, ...(data?.farmLocation || {}) },
     farm: { ...EMPTY_FARMER.farm, ...(data?.farm || {}) },
@@ -146,7 +161,7 @@ export default function ProfilePage() {
 
   const getDocumentStatus = (status) => {
     if (status === "VERIFIED") return { label: "Verified", className: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20", icon: CheckCircle2 };
-    if (status === "REJECTED") return { label: "Rejected", className: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20", icon: AlertCircle };
+    if (status === "REJECTED") return { label: "Rejected", className: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20", icon: Clock3 };
     return { label: "Pending", className: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20", icon: Clock3 };
   };
 
@@ -198,15 +213,29 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="h-9 px-3.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white/90 dark:bg-slate-800/80 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition shadow-sm disabled:opacity-50 self-start sm:self-auto"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-emerald-500" : ""}`} />
-              <span>Refresh</span>
-            </button>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {!farmer.onboardingCompleted && (
+                <button
+                  type="button"
+                  onClick={() => router.push("/onboarding")}
+                  className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-lime-600 hover:from-emerald-500 hover:to-lime-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition active:scale-95"
+                >
+                  <Sprout className="w-3.5 h-3.5" />
+                  <span>Complete Onboarding</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="h-9 px-3.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white/90 dark:bg-slate-800/80 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition shadow-sm disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-emerald-500" : ""}`} />
+                <span>Refresh</span>
+              </button>
+            </div>
           </header>
 
           {/* INNER SCROLLABLE CONTENT */}
@@ -228,8 +257,9 @@ export default function ProfilePage() {
 
                   <label
                     htmlFor="avatar-upload"
-                    className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-white shadow-lg cursor-pointer transition-all active:scale-95 ${uploadingAvatar ? "opacity-60 pointer-events-none" : ""
-                      }`}
+                    className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-white shadow-lg cursor-pointer transition-all active:scale-95 ${
+                      uploadingAvatar ? "opacity-60 pointer-events-none" : ""
+                    }`}
                     title="Change Avatar"
                   >
                     {uploadingAvatar ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
@@ -475,7 +505,7 @@ function QuickMetric({ label, value, icon: Icon }) {
   return (
     <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/5">
       <div className="flex items-center gap-1.5 text-slate-400">
-        <Icon className="w-3 h-3 text-emerald-500 shrink-0" />
+        <Icon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
         <span className="text-[8px] uppercase tracking-wider font-bold truncate">{label}</span>
       </div>
       <p className="mt-1 text-xs font-black text-slate-800 dark:text-slate-200 truncate">{value}</p>

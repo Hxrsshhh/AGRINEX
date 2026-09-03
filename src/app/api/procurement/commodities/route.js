@@ -2,53 +2,34 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Commodity from "@/models/Commodity";
 
+export const dynamic = "force-dynamic";
+
+const json = (success, message, status = 200, extra = {}) =>
+  NextResponse.json({ success, message, ...extra }, { status });
+
+const COMMODITY_FIELDS = "_id name code description category unit minimumSupportPrice qualityParameters procurementStartDate procurementEndDate";
+
 export async function GET() {
   try {
     await connectDB();
-
     const today = new Date();
 
     const commodities = await Commodity.find({
       isActive: true,
-
       $and: [
-        {
-          $or: [
-            { procurementStartDate: null },
-            { procurementStartDate: { $lte: today } },
-          ],
-        },
-        {
-          $or: [
-            { procurementEndDate: null },
-            { procurementEndDate: { $gte: today } },
-          ],
-        },
+        { $or: [{ procurementStartDate: null }, { procurementStartDate: { $lte: today } }] },
+        { $or: [{ procurementEndDate: null }, { procurementEndDate: { $gte: today } }] },
       ],
     })
-      .select(
-        "_id name code description category unit minimumSupportPrice qualityParameters procurementStartDate procurementEndDate"
-      )
+      .select(COMMODITY_FIELDS)
       .sort({ name: 1 })
       .lean();
 
-    return NextResponse.json(
-      {
-        success: true,
-        count: commodities.length,
-        data: commodities,
-      },
-      { status: 200 }
-    );
+    return json(true, undefined, 200, { count: commodities.length, data: commodities });
   } catch (error) {
     console.error("GET /api/procurement/commodities error:", error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to fetch commodities",
-      },
-      { status: 500 }
-    );
+    return json(false, "Failed to fetch commodities", 500, {
+      ...(process.env.NODE_ENV === "development" && { error: error.message }),
+    });
   }
 }

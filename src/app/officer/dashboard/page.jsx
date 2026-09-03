@@ -17,873 +17,199 @@ import {
   Wallet,
 } from "lucide-react";
 
+const STATS = [
+  { label: "Farmers", value: "128", icon: Users, c: "text-blue-600 bg-blue-50 dark:bg-blue-950/40" },
+  { label: "Bookings", value: "24", icon: CalendarDays, c: "text-purple-600 bg-purple-50 dark:bg-purple-950/40" },
+  { label: "Pending", value: "07", icon: Clock3, c: "text-amber-600 bg-amber-50 dark:bg-amber-950/40" },
+  { label: "Queue", value: "05", icon: ClipboardList, c: "text-orange-600 bg-orange-50 dark:bg-orange-950/40" },
+  { label: "Procured", value: "1.2T", icon: Leaf, c: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40" },
+  { label: "Completed", value: "18", icon: CheckCircle2, c: "text-green-600 bg-green-50 dark:bg-green-950/40" },
+  { label: "Dues", value: "₹45.2K", icon: Wallet, c: "text-rose-600 bg-rose-50 dark:bg-rose-950/40" },
+];
+
+const BOOKINGS = [
+  { id: "#BK1024", name: "Ramesh Kumar", time: "10:30 AM", status: "Confirmed" },
+  { id: "#BK1025", name: "Suresh Singh", time: "11:00 AM", status: "Confirmed" },
+  { id: "#BK1026", name: "Anita Devi", time: "11:30 AM", status: "Pending" },
+  { id: "#BK1027", name: "Mohan Das", time: "12:00 PM", status: "Confirmed" },
+];
+
+const ACTIONS = [
+  { icon: UserCheck, text: "3 farmers waiting for verification", btn: "Review" },
+  { icon: ShoppingBasket, text: "2 procurement requests need approval", btn: "Review" },
+  { icon: Wallet, text: "4 payments pending verification", btn: "View" },
+];
+
+const ALERTS = [
+  { text: "New booking received", time: "5 min ago", c: "bg-blue-500" },
+  { text: "Farmer #FR102 arrived", time: "8 min ago", c: "bg-emerald-500" },
+  { text: "Queue capacity reaching limit", time: "12 min ago", c: "bg-amber-500" },
+];
+
 export default function OfficerDashboard() {
   return (
-    <div className="w-full">
-      <div className="mx-auto w-full max-w-[1600px] p-4 md:p-6">
-
-        {/* ================================================================
-            PAGE HEADER
-        ================================================================ */}
-
-        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <div className="mb-1.5 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">
-                Officer Control Panel
-              </span>
-            </div>
-
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl">
-              Good Morning, Officer 👋
-            </h1>
-
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Here's what's happening at your centre today.
-            </p>
-          </div>
-
-          {/* Date */}
-          <button
-            className="
-              flex w-fit items-center gap-2
-              rounded-xl border border-slate-200
-              bg-white px-3.5 py-2.5
-              text-xs font-medium text-slate-700
-              shadow-sm transition
-              hover:bg-slate-50
-              dark:border-slate-700
-              dark:bg-slate-900
-              dark:text-slate-200
-              dark:hover:bg-slate-800
-            "
-          >
-            <CalendarDays size={15} />
-
-            <span>Today</span>
-
-            <ChevronRight
-              size={14}
-              className="rotate-90 text-slate-400"
-            />
-          </button>
-        </div>
-
-        {/* ================================================================
-            TODAY'S OVERVIEW
-        ================================================================ */}
-
-        <SectionHeading title="Today's Overview" />
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
-
-          <StatCard
-            icon={<Users size={17} />}
-            value="128"
-            label="Farmers"
-            iconClass="
-              bg-blue-50 text-blue-600
-              dark:bg-blue-950/40 dark:text-blue-400
-            "
-          />
-
-          <StatCard
-            icon={<CalendarDays size={17} />}
-            value="24"
-            label="Bookings"
-            iconClass="
-              bg-purple-50 text-purple-600
-              dark:bg-purple-950/40 dark:text-purple-400
-            "
-          />
-
-          <StatCard
-            icon={<Clock3 size={17} />}
-            value="07"
-            label="Pending"
-            iconClass="
-              bg-amber-50 text-amber-600
-              dark:bg-amber-950/40 dark:text-amber-400
-            "
-          />
-
-          <StatCard
-            icon={<ClipboardList size={17} />}
-            value="05"
-            label="Queue"
-            iconClass="
-              bg-orange-50 text-orange-600
-              dark:bg-orange-950/40 dark:text-orange-400
-            "
-          />
-
-          <StatCard
-            icon={<Leaf size={17} />}
-            value="1.2T"
-            label="Procured"
-            iconClass="
-              bg-emerald-50 text-emerald-600
-              dark:bg-emerald-950/40 dark:text-emerald-400
-            "
-          />
-
-          <StatCard
-            icon={<CheckCircle2 size={17} />}
-            value="18"
-            label="Completed"
-            iconClass="
-              bg-green-50 text-green-600
-              dark:bg-green-950/40 dark:text-green-400
-            "
-          />
-
-          <StatCard
-            icon={<Wallet size={17} />}
-            value="₹45.2K"
-            label="Pending"
-            iconClass="
-              bg-red-50 text-red-600
-              dark:bg-red-950/40 dark:text-red-400
-            "
-          />
-
-        </div>
-
-        {/* ================================================================
-            FIRST ROW
-        ================================================================ */}
-
-        <div className="mt-5 grid gap-4 xl:grid-cols-2">
-
-          {/* --------------------------------------------------------------
-              RECENT BOOKINGS
-          -------------------------------------------------------------- */}
-
-          <DashboardCard
-            title="Recent Bookings"
-            icon={<CalendarDays size={16} />}
-            action="View All Bookings"
-          >
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-
-              <BookingRow
-                id="#BK1024"
-                name="Ramesh Kumar"
-                time="10:30 AM"
-                status="Confirmed"
-              />
-
-              <BookingRow
-                id="#BK1025"
-                name="Suresh Singh"
-                time="11:00 AM"
-                status="Confirmed"
-              />
-
-              <BookingRow
-                id="#BK1026"
-                name="Anita Devi"
-                time="11:30 AM"
-                status="Pending"
-              />
-
-              <BookingRow
-                id="#BK1027"
-                name="Mohan Das"
-                time="12:00 PM"
-                status="Confirmed"
-              />
-
-            </div>
-          </DashboardCard>
-
-          {/* --------------------------------------------------------------
-              QUEUE STATUS
-          -------------------------------------------------------------- */}
-
-          <DashboardCard
-            title="Queue Status"
-            icon={<ClipboardList size={16} />}
-            action="Manage Queue"
-          >
-
-            <div className="grid grid-cols-2 gap-3">
-
-              {/* Current Token */}
-              <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60">
-
-                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Current Token
-                </p>
-
-                <p className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                  #104
-                </p>
-
-                <div className="mt-2 flex items-center gap-1.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Processing
-                </div>
-
-              </div>
-
-              {/* Next Token */}
-              <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60">
-
-                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Next Token
-                </p>
-
-                <p className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                  #105
-                </p>
-
-                <div className="mt-2 flex items-center gap-1.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                  Waiting
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* Queue Metrics */}
-            <div className="mt-4 grid grid-cols-2 gap-3">
-
-              <QueueMetric
-                label="Processing"
-                value="01"
-                icon={
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                }
-              />
-
-              <QueueMetric
-                label="Waiting"
-                value="04"
-                icon={
-                  <Clock3
-                    size={13}
-                    className="text-amber-500"
-                  />
-                }
-              />
-
-            </div>
-
-          </DashboardCard>
-
-          {/* --------------------------------------------------------------
-              PROCUREMENT SUMMARY
-          -------------------------------------------------------------- */}
-
-          <DashboardCard
-            title="Procurement Summary"
-            icon={<ShoppingBasket size={16} />}
-            action="View Procurement"
-          >
-
-            <div className="grid grid-cols-2 gap-4">
-
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Today's Procurement
-                </p>
-
-                <p className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                  1,240
-                  <span className="ml-1 text-sm font-medium text-slate-500 dark:text-slate-400">
-                    kg
-                  </span>
-                </p>
-              </div>
-
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Total Value
-                </p>
-
-                <p className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                  ₹72,450
-                </p>
-              </div>
-
-            </div>
-
-            {/* Procurement Status */}
-            <div className="mt-5 grid grid-cols-2 gap-3">
-
-              <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-3 dark:bg-emerald-950/30">
-
-                <div className="flex items-center gap-2">
-
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400">
-                    <CheckCircle2 size={14} />
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-800 dark:text-slate-200">
-                      Completed
-                    </p>
-
-                    <p className="text-[9px] text-slate-500 dark:text-slate-400">
-                      Transactions
-                    </p>
-                  </div>
-
-                </div>
-
-                <span className="text-sm font-bold text-slate-900 dark:text-white">
-                  18
-                </span>
-
-              </div>
-
-              <div className="flex items-center justify-between rounded-xl bg-amber-50 px-3 py-3 dark:bg-amber-950/30">
-
-                <div className="flex items-center gap-2">
-
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
-                    <Clock3 size={14} />
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-800 dark:text-slate-200">
-                      Pending
-                    </p>
-
-                    <p className="text-[9px] text-slate-500 dark:text-slate-400">
-                      Transactions
-                    </p>
-                  </div>
-
-                </div>
-
-                <span className="text-sm font-bold text-slate-900 dark:text-white">
-                  07
-                </span>
-
-              </div>
-
-            </div>
-
-          </DashboardCard>
-
-          {/* --------------------------------------------------------------
-              CENTRE STATUS
-          -------------------------------------------------------------- */}
-
-          <DashboardCard
-            title="Centre Status"
-            icon={<MapPin size={16} />}
-            action="Centre Details"
-          >
-
-            {/* Status */}
-            <div className="flex items-center justify-between">
-
-              <div className="flex items-center gap-3">
-
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/50">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                </div>
-
-                <div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Centre Operational
-                  </p>
-
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                    Running normally
-                  </p>
-                </div>
-
-              </div>
-
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
-                Active
-              </span>
-
-            </div>
-
-            {/* Capacity */}
-            <div className="mt-5">
-
-              <div className="mb-1.5 flex items-center justify-between">
-
-                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                  Capacity
-                </span>
-
-                <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200">
-                  80%
-                </span>
-
-              </div>
-
-              <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                <div className="h-full w-[80%] rounded-full bg-emerald-500" />
-              </div>
-
-            </div>
-
-            {/* Centre Information */}
-            <div className="mt-4 grid grid-cols-3 gap-2">
-
-              <InfoBox
-                label="Today's Slots"
-                value="24/30"
-              />
-
-              <InfoBox
-                label="Queue"
-                value="05"
-              />
-
-              <InfoBox
-                label="Staff"
-                value="04/05"
-              />
-
-            </div>
-
-          </DashboardCard>
-
-        </div>
-
-        {/* ================================================================
-            IMPORTANT PENDING ACTIONS + ALERTS
-        ================================================================ */}
-
-        <div className="mt-5 grid gap-4 xl:grid-cols-2">
-
-          {/* --------------------------------------------------------------
-              IMPORTANT PENDING ACTIONS
-          -------------------------------------------------------------- */}
-
-          <section>
-
-            <SectionHeading title="Important Pending Actions" />
-
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
-              <PendingAction
-                icon={<UserCheck size={16} />}
-                text="3 farmers waiting for verification"
-                button="Review"
-              />
-
-              <PendingAction
-                icon={<ShoppingBasket size={16} />}
-                text="2 procurement requests need approval"
-                button="Review"
-              />
-
-              <PendingAction
-                icon={<Wallet size={16} />}
-                text="4 payments pending"
-                button="View"
-              />
-
-            </div>
-
-          </section>
-
-          {/* --------------------------------------------------------------
-              ALERTS & NOTIFICATIONS
-          -------------------------------------------------------------- */}
-
-          <section>
-
-            <SectionHeading title="Alerts & Notifications" />
-
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
-              <AlertRow
-                type="info"
-                text="New booking received"
-                time="5 min ago"
-              />
-
-              <AlertRow
-                type="success"
-                text="Farmer #FR102 arrived"
-                time="8 min ago"
-              />
-
-              <AlertRow
-                type="warning"
-                text="Queue capacity reaching limit"
-                time="12 min ago"
-              />
-
-            </div>
-
-          </section>
-
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
-/* ==========================================================================
-   SECTION HEADING
-========================================================================== */
-
-function SectionHeading({ title }) {
-  return (
-    <div className="mb-3">
-      <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-        {title}
-      </h2>
-    </div>
-  );
-}
-
-/* ==========================================================================
-   STAT CARD
-========================================================================== */
-
-function StatCard({
-  icon,
-  value,
-  label,
-  iconClass,
-}) {
-  return (
-    <div
-      className="
-        rounded-xl
-        border border-slate-200
-        bg-white
-        p-3
-        shadow-sm
-        transition
-        hover:-translate-y-0.5
-        hover:shadow-md
-
-        dark:border-slate-800
-        dark:bg-slate-900
-      "
-    >
-      <div className="flex items-center gap-3">
-
-        <div
-          className={`
-            flex h-9 w-9 shrink-0
-            items-center justify-center
-            rounded-lg
-            ${iconClass}
-          `}
-        >
-          {icon}
-        </div>
-
-        <div className="min-w-0">
-
-          <p className="truncate text-lg font-bold tracking-tight text-slate-900 dark:text-white">
-            {value}
-          </p>
-
-          <p className="truncate text-[10px] font-medium text-slate-500 dark:text-slate-400">
-            {label}
-          </p>
-
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
-/* ==========================================================================
-   DASHBOARD CARD
-========================================================================== */
-
-function DashboardCard({
-  title,
-  icon,
-  action,
-  children,
-}) {
-  return (
-    <div
-      className="
-        rounded-xl
-        border border-slate-200
-        bg-white
-        shadow-sm
-
-        dark:border-slate-800
-        dark:bg-slate-900
-      "
-    >
-
+    <div className="w-full max-w-[1600px] mx-auto p-4 sm:p-5 select-none space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="text-[8px] font-black uppercase tracking-wider">Officer Control Panel</span>
+          </div>
+          <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">Good Morning, Officer 👋</h1>
+          <p className="text-[10px] text-slate-400">Real-time procurement & queue monitoring</p>
+        </div>
+        <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 w-fit">
+          <CalendarDays size={13} />
+          <span>Today</span>
+        </div>
+      </header>
 
-        <div className="flex items-center gap-2">
+      {/* Metrics Row */}
+      <section className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2">
+        {STATS.map((s) => (
+          <div key={s.label} className="flex items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${s.c}`}><s.icon size={15} /></div>
+            <div className="min-w-0">
+              <p className="text-sm font-black text-slate-900 dark:text-white leading-none">{s.value}</p>
+              <p className="text-[8px] text-slate-400 font-bold mt-0.5 truncate">{s.label}</p>
+            </div>
+          </div>
+        ))}
+      </section>
 
-          <span className="text-emerald-600 dark:text-emerald-400">
-            {icon}
-          </span>
-
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
-            {title}
-          </h3>
-
+      {/* 4 Operations Panels */}
+      <section className="grid gap-4 xl:grid-cols-2">
+        {/* Bookings */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-1.5 font-bold text-xs"><CalendarDays size={14} className="text-emerald-500" /> Recent Bookings</div>
+            <button className="text-[9px] font-bold text-emerald-600 hover:underline flex items-center gap-0.5">View All <ChevronRight size={10} /></button>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            {BOOKINGS.map((b) => (
+              <div key={b.id} className="flex items-center justify-between py-2 text-[9px]">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600"><User size={12} /></div>
+                  <div>
+                    <p className="font-black text-slate-900 dark:text-white leading-tight">{b.name}</p>
+                    <span className="text-[7px] text-slate-400">{b.id}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[8px] text-slate-400">{b.time}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[7px] font-bold ${b.status === "Confirmed" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>{b.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {action && (
-          <button
-            className="
-              flex items-center gap-1
-              text-[10px] font-semibold
-              text-emerald-600
-              hover:text-emerald-700
-              dark:text-emerald-400
-              dark:hover:text-emerald-300
-            "
-          >
-            {action}
-
-            <ChevronRight size={12} />
-          </button>
-        )}
-
-      </div>
-
-      {/* Content */}
-      <div className="p-4">
-        {children}
-      </div>
-
-    </div>
-  );
-}
-
-/* ==========================================================================
-   BOOKING ROW
-========================================================================== */
-
-function BookingRow({
-  id,
-  name,
-  time,
-  status,
-}) {
-  const pending = status === "Pending";
-
-  return (
-    <div className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-
-      <div className="flex min-w-0 items-center gap-3">
-
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
-          <User size={14} />
+        {/* Queue Status */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-1.5 font-bold text-xs"><ClipboardList size={14} className="text-emerald-500" /> Queue Operations</div>
+            <button className="text-[9px] font-bold text-emerald-600 hover:underline flex items-center gap-0.5">Manage Queue <ChevronRight size={10} /></button>
+          </div>
+          <div className="grid grid-cols-2 gap-2 my-3">
+            {[
+              { label: "Current Token", val: "#104", status: "Processing", c: "text-emerald-500" },
+              { label: "Next Token", val: "#105", status: "Waiting", c: "text-amber-500" },
+            ].map((t) => (
+              <div key={t.label} className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3">
+                <span className="text-[8px] font-bold text-slate-400 uppercase">{t.label}</span>
+                <p className="text-xl font-black text-slate-900 dark:text-white">{t.val}</p>
+                <div className={`flex items-center gap-1 text-[8px] font-bold ${t.c} mt-1`}>
+                  <span className={`h-1.5 w-1.5 rounded-full bg-current`} /> {t.status}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[9px] font-bold">
+            <div className="flex justify-between items-center rounded-lg border border-slate-200 dark:border-slate-800 p-2"><span>In Weighing</span><span>01</span></div>
+            <div className="flex justify-between items-center rounded-lg border border-slate-200 dark:border-slate-800 p-2"><span>In Line</span><span>04</span></div>
+          </div>
         </div>
 
-        <div className="min-w-0">
-
-          <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">
-            {name}
-          </p>
-
-          <p className="mt-0.5 text-[9px] text-slate-500 dark:text-slate-400">
-            {id}
-          </p>
-
+        {/* Procurement Summary */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-1.5 font-bold text-xs"><ShoppingBasket size={14} className="text-emerald-500" /> Procurement Summary</div>
+            <span className="text-[8px] text-slate-400 font-bold">Live Target</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 my-3">
+            <div>
+              <span className="text-[8px] font-bold text-slate-400 uppercase">Procured Today</span>
+              <p className="text-lg font-black text-slate-900 dark:text-white">1,240 <span className="text-xs font-normal text-slate-400">kg</span></p>
+            </div>
+            <div>
+              <span className="text-[8px] font-bold text-slate-400 uppercase">Valuation</span>
+              <p className="text-lg font-black text-slate-900 dark:text-white">₹72,450</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[9px]">
+            <div className="flex items-center justify-between rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 p-2.5">
+              <span className="font-bold text-slate-700 dark:text-slate-300">Completed</span>
+              <span className="font-black text-emerald-600">18 tx</span>
+            </div>
+            <div className="flex items-center justify-between rounded-xl bg-amber-50/70 dark:bg-amber-950/20 p-2.5">
+              <span className="font-bold text-slate-700 dark:text-slate-300">Pending</span>
+              <span className="font-black text-amber-600">07 tx</span>
+            </div>
+          </div>
         </div>
 
-      </div>
+        {/* Centre Capacity Status */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-1.5 font-bold text-xs"><MapPin size={14} className="text-emerald-500" /> Centre Operations</div>
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[8px] font-black text-emerald-600">Active</span>
+          </div>
+          <div className="my-3">
+            <div className="flex justify-between text-[9px] font-bold mb-1">
+              <span className="text-slate-400 uppercase">Yard Capacity</span>
+              <span className="text-slate-800 dark:text-slate-200">80% Full</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full w-[80%]" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-[8px] text-center">
+            <div className="rounded-lg bg-slate-50 dark:bg-slate-800 p-2"><p className="text-slate-400">Slots</p><p className="font-black text-slate-800 dark:text-slate-200">24/30</p></div>
+            <div className="rounded-lg bg-slate-50 dark:bg-slate-800 p-2"><p className="text-slate-400">Queue</p><p className="font-black text-slate-800 dark:text-slate-200">05</p></div>
+            <div className="rounded-lg bg-slate-50 dark:bg-slate-800 p-2"><p className="text-slate-400">Staff</p><p className="font-black text-slate-800 dark:text-slate-200">04/05</p></div>
+          </div>
+        </div>
+      </section>
 
-      <div className="flex shrink-0 items-center gap-3">
+      {/* Action Items & Alerts */}
+      <section className="grid gap-4 xl:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 shadow-xs divide-y divide-slate-100 dark:divide-slate-800/60">
+          <p className="text-[9px] font-bold uppercase text-slate-400 pb-2">Pending Actions</p>
+          {ACTIONS.map((a) => (
+            <div key={a.text} className="flex items-center justify-between py-2 text-[9px]">
+              <div className="flex items-center gap-2">
+                <a.icon size={13} className="text-amber-500" />
+                <span className="font-bold text-slate-700 dark:text-slate-300">{a.text}</span>
+              </div>
+              <button className="flex items-center gap-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1 text-[8px] font-bold hover:bg-slate-200">{a.btn} <ArrowUpRight size={9} /></button>
+            </div>
+          ))}
+        </div>
 
-        <span className="hidden text-[10px] text-slate-500 dark:text-slate-400 sm:block">
-          {time}
-        </span>
-
-        <span
-          className={`
-            rounded-full
-            px-2 py-1
-            text-[9px]
-            font-semibold
-
-            ${
-              pending
-                ? "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400"
-                : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400"
-            }
-          `}
-        >
-          {status}
-        </span>
-
-      </div>
-
-    </div>
-  );
-}
-
-/* ==========================================================================
-   QUEUE METRIC
-========================================================================== */
-
-function QueueMetric({
-  label,
-  value,
-  icon,
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5 dark:border-slate-700">
-
-      <div className="flex items-center gap-2">
-
-        <span className="flex items-center justify-center">
-          {icon}
-        </span>
-
-        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-          {label}
-        </span>
-
-      </div>
-
-      <span className="text-xs font-bold text-slate-900 dark:text-white">
-        {value}
-      </span>
-
-    </div>
-  );
-}
-
-/* ==========================================================================
-   INFO BOX
-========================================================================== */
-
-function InfoBox({
-  label,
-  value,
-}) {
-  return (
-    <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-800/60">
-
-      <p className="truncate text-[9px] text-slate-500 dark:text-slate-400">
-        {label}
-      </p>
-
-      <p className="mt-1 text-xs font-bold text-slate-900 dark:text-white">
-        {value}
-      </p>
-
-    </div>
-  );
-}
-
-/* ==========================================================================
-   PENDING ACTION
-========================================================================== */
-
-function PendingAction({
-  icon,
-  text,
-  button,
-}) {
-  return (
-    <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-0 dark:border-slate-800">
-
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
-        {icon}
-      </div>
-
-      <p className="flex-1 text-[11px] font-medium text-slate-700 dark:text-slate-300">
-        {text}
-      </p>
-
-      <button
-        className="
-          flex shrink-0 items-center gap-1
-          rounded-lg
-          bg-slate-100
-          px-2.5 py-1.5
-          text-[9px]
-          font-semibold
-          text-slate-700
-          transition
-          hover:bg-slate-200
-
-          dark:bg-slate-800
-          dark:text-slate-300
-          dark:hover:bg-slate-700
-        "
-      >
-        {button}
-
-        <ArrowUpRight size={11} />
-      </button>
-
-    </div>
-  );
-}
-
-/* ==========================================================================
-   ALERT ROW
-========================================================================== */
-
-function AlertRow({
-  type,
-  text,
-  time,
-}) {
-  const alertStyles = {
-    info: {
-      icon: <span className="h-2 w-2 rounded-full bg-blue-500" />,
-      className:
-        "bg-blue-50 dark:bg-blue-950/40",
-    },
-
-    success: {
-      icon: <CheckCircle2 size={14} />,
-      className:
-        "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400",
-    },
-
-    warning: {
-      icon: <AlertTriangle size={14} />,
-      className:
-        "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400",
-    },
-  };
-
-  const current = alertStyles[type];
-
-  return (
-    <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-0 dark:border-slate-800">
-
-      <div
-        className={`
-          flex h-8 w-8 shrink-0
-          items-center justify-center
-          rounded-lg
-          ${current.className}
-        `}
-      >
-        {current.icon}
-      </div>
-
-      <p className="flex-1 text-[11px] font-medium text-slate-700 dark:text-slate-300">
-        {text}
-      </p>
-
-      <span className="whitespace-nowrap text-[9px] text-slate-400">
-        {time}
-      </span>
-
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 shadow-xs divide-y divide-slate-100 dark:divide-slate-800/60">
+          <p className="text-[9px] font-bold uppercase text-slate-400 pb-2">Recent Broadcasts</p>
+          {ALERTS.map((al) => (
+            <div key={al.text} className="flex items-center justify-between py-2 text-[9px]">
+              <div className="flex items-center gap-2">
+                <span className={`h-1.5 w-1.5 rounded-full ${al.c}`} />
+                <span className="font-bold text-slate-700 dark:text-slate-300">{al.text}</span>
+              </div>
+              <span className="text-[8px] text-slate-400">{al.time}</span>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

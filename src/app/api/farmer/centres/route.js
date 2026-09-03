@@ -1,253 +1,78 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-
 import connectDB from "@/lib/db";
-import User from "@/models/User";
+import Farmer from "@/models/Farmer";
 import ProcurementCentre from "@/models/ProcurementCentre";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export const dynamic = "force-dynamic";
 
+const json = (success, message, status = 200, extra = {}) =>
+  NextResponse.json({ success, message, ...extra }, { status });
+
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const hasPath = (p) => Object.prototype.hasOwnProperty.call(ProcurementCentre.schema.paths, p);
+
 export async function GET(request) {
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
+    if (!session?.user?.id) return json(false, "Unauthorized", 401);
+    if (session.user.role !== "FARMER") return json(false, "Only farmers can access procurement centres", 403);
 
     await connectDB();
+    const farmer = await Farmer.findById(session.user.id).select("name mobile role isActive farmLocation preferredCentre").lean();
+    if (!farmer) return json(false, "Farmer not found", 404);
+    if (!farmer.isActive) return json(false, "Farmer account is inactive", 403);
 
-    const farmer = await User.findById(
-      session.user.id
-    )
-      .select("role farmLocation preferredCentre")
-      .lean();
-
-    if (!farmer) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Farmer not found",
-        },
-        { status: 404 }
-      );
-    }
-
-    if (farmer.role !== "FARMER") {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Only farmers can access centres",
-        },
-        { status: 403 }
-      );
-    }
-
-    /*
-     * Optional query parameters:
-     *
-     * ?state=Jharkhand
-     * ?district=Bokaro
-     * ?search=centre
-     */
-
-    const { searchParams } =
-      new URL(request.url);
-
-    const state =
-      searchParams.get("state")?.trim();
-
-    const district =
-      searchParams.get("district")?.trim();
-
-    const search =
-      searchParams.get("search")?.trim();
+    const { searchParams } = new URL(request.url);
+    const state = searchParams.get("state")?.trim();
+    const district = searchParams.get("district")?.trim();
+    const search = searchParams.get("search")?.trim();
 
     const filter = {};
+    if (hasPath("isActive")) filter.isActive = true;
+    if (hasPath("status")) filter.status = { $nin: ["INACTIVE", "CLOSED"] };
 
-    /*
-     * ---------------------------------------------------------
-     * ACTIVE CENTRES
-     * ---------------------------------------------------------
-     *
-     * Adjust these fields if your ProcurementCentre
-     * schema uses different names.
-     */
+    const addLocationCond = (val, keys) => {
+      if (!val) return;
+      const rx = new RegExp(`^${escapeRegex(val)}$`, "i");
+      const conds = keys.filter(hasPath).map((k) => ({ [k]: rx }));
+      if (conds.length === 1) Object.assign(filter, conds[0]);
+      else if (conds.length > 1) (filter.$and = filter.$and || []).push({ $or: conds });
+    };
 
-    if (
-      Object.prototype.hasOwnProperty.call(
-        ProcurementCentre.schema.paths,
-        "isActive"
-      )
-    ) {
-      filter.isActive = true;
-    }
-
-    if (
-      Object.prototype.hasOwnProperty.call(
-        ProcurementCentre.schema.paths,
-        "status"
-      )
-    ) {
-      filter.status = {
-        $nin: ["INACTIVE", "CLOSED"],
-      };
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * LOCATION FILTERS
-     * ---------------------------------------------------------
-     */
-
-    if (state) {
-      if (
-        Object.prototype.hasOwnProperty.call(
-          ProcurementCentre.schema.paths,
-          "state"
-        )
-      ) {
-        filter.state = new RegExp(
-          `^${escapeRegex(state)}$`,
-          "i"
-        );
-      }
-
-      if (
-        Object.prototype.hasOwnProperty.call(
-          ProcurementCentre.schema.paths,
-          "address.state"
-        )
-      ) {
-        filter["address.state"] =
-          new RegExp(
-            `^${escapeRegex(state)}$`,
-            "i"
-          );
-      }
-    }
-
-    if (district) {
-      if (
-        Object.prototype.hasOwnProperty.call(
-          ProcurementCentre.schema.paths,
-          "district"
-        )
-      ) {
-        filter.district = new RegExp(
-          `^${escapeRegex(district)}$`,
-          "i"
-        );
-      }
-
-      if (
-        Object.prototype.hasOwnProperty.call(
-          ProcurementCentre.schema.paths,
-          "address.district"
-        )
-      ) {
-        filter["address.district"] =
-          new RegExp(
-            `^${escapeRegex(district)}$`,
-            "i"
-          );
-      }
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * SEARCH
-     * ---------------------------------------------------------
-     */
+    addLocationCond(state, ["state", "address.state"]);
+    addLocationCond(district, ["district", "address.district"]);
 
     if (search) {
-      const searchRegex = new RegExp(
-        escapeRegex(search),
-        "i"
-      );
-
-      const searchConditions = [];
-
-      const possibleFields = [
-        "name",
-        "code",
-        "centreCode",
-        "village",
-        "district",
-        "block",
-        "state",
-      ];
-
-      for (const field of possibleFields) {
-        if (
-          Object.prototype.hasOwnProperty.call(
-            ProcurementCentre.schema.paths,
-            field
-          )
-        ) {
-          searchConditions.push({
-            [field]: searchRegex,
-          });
-        }
-      }
-
-      if (searchConditions.length) {
-        filter.$or = searchConditions;
-      }
+      const rx = new RegExp(escapeRegex(search), "i");
+      const fields = ["name", "code", "centreCode", "village", "district", "block", "state", "address.name", "address.village", "address.district", "address.block", "address.state"];
+      const sConds = fields.filter(hasPath).map((f) => ({ [f]: rx }));
+      if (sConds.length) (filter.$and = filter.$and || []).push({ $or: sConds });
     }
 
-    /*
-     * ---------------------------------------------------------
-     * FETCH CENTRES
-     * ---------------------------------------------------------
-     */
+    const centres = await ProcurementCentre.find(filter)
+      .sort(hasPath("name") ? { name: 1 } : { createdAt: -1 })
+      .lean();
 
-    const centres =
-      await ProcurementCentre.find(filter)
-        .sort({
-          name: 1,
-        })
-        .lean();
+    const prefId = farmer.preferredCentre ? String(farmer.preferredCentre) : null;
+    const formattedCentres = centres.map((c) => ({ ...c, isPreferred: prefId === String(c._id) }));
 
-    return NextResponse.json({
-      success: true,
-      centres,
-      count: centres.length,
+    return json(true, undefined, 200, {
+      farmer: {
+        id: farmer._id,
+        name: farmer.name,
+        mobile: farmer.mobile,
+        farmLocation: farmer.farmLocation,
+        preferredCentre: farmer.preferredCentre,
+      },
+      centres: formattedCentres,
+      count: formattedCentres.length,
     });
   } catch (error) {
-    console.error(
-      "GET /api/farmer/centres error:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to fetch procurement centres",
-        error:
-          process.env.NODE_ENV === "development"
-            ? error.message
-            : undefined,
-      },
-      { status: 500 }
-    );
+    console.error("GET /api/farmer/centres error:", error);
+    return json(false, "Failed to fetch procurement centres", 500, {
+      ...(process.env.NODE_ENV === "development" && { error: error.message }),
+    });
   }
-}
-
-/**
- * Escape user-provided text before putting it into
- * a MongoDB RegExp.
- */
-function escapeRegex(value) {
-  return value.replace(
-    /[.*+?^${}()|[\]\\]/g,
-    "\\$&"
-  );
 }

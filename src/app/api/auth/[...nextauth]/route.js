@@ -3,205 +3,99 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import connectDB from "@/lib/db";
-import User from "@/models/User";
+import Farmer from "@/models/Farmer";
+import Officer from "@/models/Officer";
+import Admin from "@/models/Admin";
+
+const USER_FIELDS = [
+  "id", "name", "email", "mobile", "role", "isPhoneVerified",
+  "isVerified", "isActive", "onboardingCompleted", "onboardingSkipped",
+  "designation", "officerCentre", "adminLevel",
+];
 
 export const authOptions = {
-  session: {
-    strategy: "jwt",
-  },
-
+  session: { strategy: "jwt" },
   providers: [
     CredentialsProvider({
       name: "Credentials",
-
       credentials: {
-        identifier: {
-          label: "Mobile Number or Email",
-          type: "text",
-        },
-        password: {
-          label: "Password",
-          type: "password",
-        },
+        identifier: { label: "Mobile Number or Email", type: "text" },
+        password: { label: "Password", type: "password" },
       },
-
       async authorize(credentials) {
-        if (
-          !credentials?.identifier ||
-          !credentials?.password
-        ) {
-          throw new Error(
-            "Mobile/email and password are required"
-          );
+        if (!credentials?.identifier || !credentials?.password) {
+          throw new Error("Mobile/email and password are required");
         }
 
         await connectDB();
+        const id = credentials.identifier.trim();
+        const query = id.includes("@")
+          ? { email: id.toLowerCase() }
+          : { mobile: id.replace(/\D/g, "") };
 
-        const identifier =
-          credentials.identifier.trim();
+        const models = [
+          { model: Farmer, role: "FARMER" },
+          { model: Officer, role: "OFFICER" },
+          { model: Admin, role: "ADMIN" },
+        ];
 
-        const isEmail =
-          identifier.includes("@");
+        let account = null;
+        let accountType = null;
 
-        const query = isEmail
-          ? {
-              email: identifier.toLowerCase(),
-            }
-          : {
-              mobile: identifier.replace(/\D/g, ""),
-            };
-
-        const user = await User.findOne(query)
-          .select("+password");
-
-        if (!user) {
-          throw new Error(
-            "Invalid mobile/email or password"
-          );
+        for (const { model, role } of models) {
+          account = await model.findOne(query).select("+password");
+          if (account) {
+            accountType = role;
+            break;
+          }
         }
 
-        if (!user.isActive) {
-          throw new Error(
-            "Your account has been disabled"
-          );
-        }
+        if (!account) throw new Error("Invalid mobile/email or password");
+        if (!account.isActive) throw new Error("Your account has been disabled");
+        if (!account.password) throw new Error("Password authentication is not configured");
 
-        if (!user.password) {
-          throw new Error(
-            "Password authentication is not configured"
-          );
-        }
+        const isValid = await bcrypt.compare(credentials.password, account.password);
+        if (!isValid) throw new Error("Invalid mobile/email or password");
 
-        const passwordValid =
-          await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-
-        if (!passwordValid) {
-          throw new Error(
-            "Invalid mobile/email or password"
-          );
-        }
-
-        user.lastLogin = new Date();
-        await user.save();
+        account.lastLogin = new Date();
+        await account.save();
 
         return {
-          id: user._id.toString(),
-
-          name: user.name,
-
-          email: user.email || null,
-
-          mobile: user.mobile || null,
-
-          role: user.role,
-
-          // Official/admin verification
-          isVerified:
-            user.verification?.isVerified ?? false,
-
-          // Mobile OTP verification
-          isPhoneVerified:
-            user.verification?.isPhoneVerified ?? false,
-
-          isActive: user.isActive,
-
-          onboardingCompleted:
-            user.onboardingCompleted === true,
-
-          onboardingSkipped:
-            user.onboardingSkipped === true,
+          id: account._id.toString(),
+          name: account.name,
+          email: account.email || null,
+          mobile: account.mobile || null,
+          role: accountType,
+          isPhoneVerified: account.isPhoneVerified ?? false,
+          isVerified: account.verification?.isVerified ?? false,
+          isActive: account.isActive,
+          onboardingCompleted: account.onboardingCompleted === true,
+          onboardingSkipped: account.onboardingSkipped === true,
+          designation: account.designation || null,
+          officerCentre: account.officerCentre?.toString() || null,
+          adminLevel: account.adminLevel || null,
         };
       },
     }),
   ],
-
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-
-        token.name = user.name;
-
-        token.email = user.email;
-
-        token.mobile = user.mobile;
-
-        token.role = user.role;
-
-        // Official/admin verification
-        token.isVerified =
-          user.isVerified;
-
-        // Mobile OTP verification
-        token.isPhoneVerified =
-          user.isPhoneVerified;
-
-        token.isActive =
-          user.isActive;
-
-        token.onboardingCompleted =
-          user.onboardingCompleted === true;
-
-        token.onboardingSkipped =
-          user.onboardingSkipped === true;
-
+        USER_FIELDS.forEach((key) => { token[key] = user[key]; });
         token.sessionId = randomUUID();
       }
-
       return token;
     },
-
     async session({ session, token }) {
-      if (!token?.id) {
-        return session;
-      }
-
-      session.user = {
-        id: token.id,
-
-        name: token.name,
-
-        email: token.email,
-
-        mobile: token.mobile,
-
-        role: token.role,
-
-        // Official/admin verification
-        isVerified:
-          token.isVerified,
-
-        // Mobile OTP verification
-        isPhoneVerified:
-          token.isPhoneVerified,
-
-        isActive:
-          token.isActive,
-
-        onboardingCompleted:
-          token.onboardingCompleted === true,
-
-        onboardingSkipped:
-          token.onboardingSkipped === true,
-
-        sessionId: token.sessionId,
-      };
-
+      if (!token?.id) return session;
+      session.user = { sessionId: token.sessionId };
+      USER_FIELDS.forEach((key) => { session.user[key] = token[key]; });
       return session;
     },
   },
-
-  pages: {
-    signIn: "/signin",
-    error: "/signin",
-  },
-
+  pages: { signIn: "/signin", error: "/signin" },
   secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };

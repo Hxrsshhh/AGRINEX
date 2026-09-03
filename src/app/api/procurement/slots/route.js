@@ -1,267 +1,95 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
-
 import connectDB from "@/lib/db";
 import Slot from "@/models/Slot";
+import Commodity from "@/models/Commodity";
+import ProcurementCentre from "@/models/ProcurementCentre";
+
+export const dynamic = "force-dynamic";
+
+const json = (success, message, status = 200, extra = {}, headers = {}) =>
+  NextResponse.json({ success, message, ...extra }, { status, headers });
+
+const validId = (id) => mongoose.Types.ObjectId.isValid(id);
+const CENTRE_SELECT = "centreId name address contactNumber email operatingHours workingDays dailyCapacity processingCapacity status";
 
 export async function GET(request) {
   try {
     await connectDB();
-
     const { searchParams } = new URL(request.url);
-
     const centreId = searchParams.get("centreId");
     const commodityId = searchParams.get("commodityId");
     const date = searchParams.get("date");
 
-    /* ============================================================
-       VALIDATE CENTRE
-    ============================================================ */
+    if (!centreId) return json(false, "centreId is required", 400);
+    if (!validId(centreId)) return json(false, "Invalid centreId", 400);
 
-    if (!centreId) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "centreId is required",
-        },
-        { status: 400 }
-      );
-    }
+    const centre = await ProcurementCentre.findOne({ _id: centreId, status: "ACTIVE" })
+      .select(`_id ${CENTRE_SELECT}`).lean();
+    if (!centre) return json(false, "Procurement centre not found or inactive", 404);
 
-    if (!mongoose.Types.ObjectId.isValid(centreId)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid centreId",
-        },
-        { status: 400 }
-      );
-    }
-
-    /* ============================================================
-       BASE QUERY
-    ============================================================ */
-
-    const query = {
-      centre: centreId,
-      isActive: true,
-      status: {
-        $in: ["AVAILABLE", "FULL"],
-      },
-    };
-
-    /* ============================================================
-       COMMODITY FILTER
-    ============================================================ */
+    const query = { centre: centreId, isActive: true, status: { $in: ["AVAILABLE", "FULL"] } };
 
     if (commodityId) {
-      if (
-        !mongoose.Types.ObjectId.isValid(
-          commodityId
-        )
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Invalid commodityId",
-          },
-          { status: 400 }
-        );
-      }
-
+      if (!validId(commodityId)) return json(false, "Invalid commodityId", 400);
+      const commodity = await Commodity.findOne({ _id: commodityId, isActive: true })
+        .select("_id name code category unit minimumSupportPrice").lean();
+      if (!commodity) return json(false, "Commodity not found or inactive", 404);
       query.commodity = commodityId;
     }
 
-    /* ============================================================
-       DATE FILTER
-    ============================================================ */
-
     if (date) {
-      const selectedDate = new Date(
-        `${date}T00:00:00`
-      );
-
-      if (
-        Number.isNaN(
-          selectedDate.getTime()
-        )
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Invalid date",
-          },
-          { status: 400 }
-        );
-      }
-
-      const startOfDay =
-        new Date(selectedDate);
-
-      startOfDay.setHours(
-        0,
-        0,
-        0,
-        0
-      );
-
-      const endOfDay =
-        new Date(selectedDate);
-
-      endOfDay.setHours(
-        23,
-        59,
-        59,
-        999
-      );
-
-      query.date = {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      };
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json(false, "Invalid date. Expected format YYYY-MM-DD", 400);
+      const start = new Date(`${date}T00:00:00`);
+      if (Number.isNaN(start.getTime())) return json(false, "Invalid date", 400);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setHours(23, 59, 59, 999);
+      query.date = { $gte: start, $lte: end };
     }
 
-    /* ============================================================
-       FETCH SLOTS
-    ============================================================ */
-
     const slots = await Slot.find(query)
-      .populate({
-        path: "commodity",
-        select:
-          "name code unit minimumSupportPrice",
-      })
-      .populate({
-        path: "centre",
-        select:
-          "centreId name address operatingHours workingDays status",
-      })
-      .sort({
-        date: 1,
-        startTime: 1,
-      })
+      .populate({ path: "commodity", select: "name code category unit minimumSupportPrice" })
+      .populate({ path: "centre", select: CENTRE_SELECT })
+      .sort({ date: 1, startTime: 1 })
       .lean();
 
-    /* ============================================================
-       FORMAT RESPONSE
-    ============================================================ */
+    const formattedSlots = slots.map((s) => {
+      const cap = Number(s.capacity || 0);
+      const booked = Number(s.bookedCount || 0);
+      const remaining = Math.max(0, cap - booked);
 
-    const formattedSlots =
-      slots.map((slot) => {
-        const capacity =
-          Number(slot.capacity || 0);
+      return {
+        _id: s._id,
+        centreId: s.centre?._id || s.centre,
+        centreCode: s.centre?.centreId || centre.centreId || null,
+        centreName: s.centre?.name || centre.name || "Procurement Centre",
+        centreAddress: s.centre?.address || centre.address || null,
+        centreContactNumber: s.centre?.contactNumber || centre.contactNumber || null,
+        commodityId: s.commodity?._id || s.commodity,
+        commodityName: s.commodity?.name || "Commodity",
+        commodityCode: s.commodity?.code || null,
+        category: s.commodity?.category || null,
+        unit: s.commodity?.unit || "QUINTAL",
+        minimumSupportPrice: Number(s.commodity?.minimumSupportPrice || 0),
+        date: s.date,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        capacity: cap,
+        bookedCount: booked,
+        remaining,
+        status: remaining <= 0 ? "FULL" : s.status,
+        isActive: Boolean(s.isActive),
+      };
+    });
 
-        const bookedCount =
-          Number(slot.bookedCount || 0);
-
-        const remaining =
-          Math.max(
-            0,
-            capacity - bookedCount
-          );
-
-        const status =
-          remaining <= 0
-            ? "FULL"
-            : slot.status;
-
-        return {
-          _id: slot._id,
-
-          /* CENTRE */
-          centreId:
-            slot.centre?._id ||
-            slot.centre,
-
-          centreCode:
-            slot.centre?.centreId ||
-            null,
-
-          centreName:
-            slot.centre?.name ||
-            "Procurement Centre",
-
-          centreAddress:
-            slot.centre?.address ||
-            null,
-
-          /* COMMODITY */
-          commodityId:
-            slot.commodity?._id ||
-            slot.commodity,
-
-          commodityName:
-            slot.commodity?.name ||
-            "Commodity",
-
-          commodityCode:
-            slot.commodity?.code ||
-            null,
-
-          unit:
-            slot.commodity?.unit ||
-            "QUINTAL",
-
-          /*
-           * IMPORTANT:
-           * This was missing from the old response.
-           */
-          minimumSupportPrice:
-            Number(
-              slot.commodity
-                ?.minimumSupportPrice || 0
-            ),
-
-          /* SLOT */
-          date: slot.date,
-
-          startTime:
-            slot.startTime,
-
-          endTime:
-            slot.endTime,
-
-          capacity,
-
-          bookedCount,
-
-          remaining,
-
-          status,
-
-          isActive:
-            Boolean(
-              slot.isActive
-            ),
-        };
-      });
-
-    /* ============================================================
-       RESPONSE
-    ============================================================ */
-
-    return NextResponse.json(
-      {
-        success: true,
-        count:
-          formattedSlots.length,
-        data: formattedSlots,
-      },
-      { status: 200 }
-    );
+    return json(true, undefined, 200, { count: formattedSlots.length, data: formattedSlots }, {
+      "Cache-Control": "no-store, max-age=0",
+    });
   } catch (error) {
-    console.error(
-      "GET /api/procurement/slots error:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        success: false,
-        message:
-          "Failed to fetch procurement slots",
-      },
-      { status: 500 }
-    );
+    console.error("GET /api/procurement/slots error:", error);
+    return json(false, "Failed to fetch procurement slots", 500, {
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 }

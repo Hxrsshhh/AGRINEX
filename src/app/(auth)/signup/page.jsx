@@ -7,6 +7,7 @@ import {
   AlertCircle, ArrowRight, ArrowLeft, KeyRound, RefreshCw, Tractor, Check,
 } from "lucide-react";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 
 const stagger = { hidden: { opacity: 1 }, visible: { opacity: 1, transition: { staggerChildren: 0.04 } } };
 
@@ -16,7 +17,6 @@ function SignupContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [signupSuccess, setSignupSuccess] = useState(false);
   const [errors, setErrors] = useState({});
 
   const passwordStrength = useMemo(() => {
@@ -137,42 +137,35 @@ function SignupContent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateStep(2)) return;
+
     setIsLoading(true);
     setErrors({});
+
     try {
-      const data = await postAuth("/api/auth/register/verify-otp", { otp: formData.otp.join("") });
-      console.log("AGRINEX USER CREATED:", data.user);
-      setSignupSuccess(true);
-      setTimeout(() => (window.location.href = "/onboarding"), 1000);
+      await postAuth("/api/auth/register/verify-otp", {
+        otp: formData.otp.join(""),
+      });
+
+      const loginResult = await signIn("credentials", {
+        redirect: false,
+        identifier: formData.mobileNumber.replace(/\D/g, "").trim(),
+        password: formData.password,
+      });
+
+      if (!loginResult || loginResult.error) {
+        throw new Error("Account was created, but automatic login failed. Please sign in manually.");
+      }
+
+      window.location.replace("/onboarding");
     } catch (err) {
-      console.error("OTP VERIFICATION ERROR:", err);
-      setErrors({ otp: err.message || "Unable to verify OTP" });
+      console.error("OTP VERIFICATION / AUTO LOGIN ERROR:", err);
+      setErrors({
+        otp: err.message || "Unable to create your account",
+      });
     } finally {
       setIsLoading(false);
     }
   };
-
-  if (signupSuccess) {
-    return (
-      <div className="fixed inset-0 w-screen h-screen overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-[#080d12] px-4">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-sm rounded-[28px] bg-white dark:bg-[#0d141b] border border-slate-200 dark:border-slate-800 shadow-2xl p-7 text-center">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-            <CheckCircle2 className="w-9 h-9 text-emerald-500" />
-          </div>
-          <h2 className="mt-5 text-xl font-black">Account Created</h2>
-          <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-            Your mobile number has been verified and your AGRINEX account has been created successfully.
-          </p>
-          <div className="mt-5 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-            <div className="flex items-center justify-center gap-2">
-              <RefreshCw className="w-3.5 h-3.5 text-emerald-500 animate-spin" />
-              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">Opening Your Profile Setup</span>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="fixed inset-0 w-screen h-screen max-w-[100vw] max-h-screen overflow-hidden bg-slate-50 dark:bg-[#080d12] text-slate-900 dark:text-slate-100 font-sans">
@@ -365,9 +358,8 @@ function FormField({ icon: Icon, name, value, onChange, placeholder, error, type
           onChange={onChange}
           placeholder={placeholder}
           autoComplete={name === "fullName" ? "name" : name === "mobileNumber" ? "tel" : name === "email" ? "email" : "off"}
-          className={`w-full ${prefix ? "pl-15" : "pl-9"} pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border text-xs text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all ${
-            error ? "border-rose-500" : "border-slate-200 dark:border-slate-700"
-          }`}
+          className={`w-full ${prefix ? "pl-15" : "pl-9"} pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border text-xs text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all ${error ? "border-rose-500" : "border-slate-200 dark:border-slate-700"
+            }`}
         />
       </div>
       {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -387,9 +379,8 @@ function PasswordField({ name, value, onChange, placeholder, show, onToggle, err
           onChange={onChange}
           placeholder={placeholder}
           autoComplete="new-password"
-          className={`w-full pl-9 pr-9 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border text-xs text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all ${
-            error ? "border-rose-500" : "border-slate-200 dark:border-slate-700"
-          }`}
+          className={`w-full pl-9 pr-9 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border text-xs text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all ${error ? "border-rose-500" : "border-slate-200 dark:border-slate-700"
+            }`}
         />
         <button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-500 transition-colors">
           {show ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}

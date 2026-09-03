@@ -1,243 +1,79 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-
 import connectDB from "@/lib/db";
-import User from "@/models/User";
+import Farmer from "@/models/Farmer";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import cloudinary from "@/lib/cloudinary";
 
 export const dynamic = "force-dynamic";
 
-/*
- * ---------------------------------------------------------
- * GET DOCUMENTS
- * ---------------------------------------------------------
- */
+const json = (success, message, status = 200, extra = {}) =>
+  NextResponse.json({ success, message, ...extra }, { status });
+
+const ALLOWED_DOC_TYPES = ["IDENTITY_PROOF", "LAND_RECORD", "BANK_PROOF", "OTHER"];
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
+
+async function getAuthenticatedFarmer() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return { response: json(false, "Unauthorized", 401) };
+  if (session.user.role !== "FARMER") return { response: json(false, "Only farmers can access documents", 403) };
+
+  await connectDB();
+  const farmer = await Farmer.findById(session.user.id);
+  if (!farmer) return { response: json(false, "Farmer not found", 404) };
+  if (!farmer.isActive) return { response: json(false, "Farmer account is inactive", 403) };
+
+  return { farmer };
+}
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const { farmer, response } = await getAuthenticatedFarmer();
+    if (response) return response;
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
-
-    await connectDB();
-
-    const farmer = await User.findById(
-      session.user.id
-    )
-      .select("documents")
-      .lean();
-
-    if (!farmer) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Farmer not found",
-        },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      documents: farmer.documents || [],
-    });
+    const documents = farmer.documents || [];
+    return json(true, undefined, 200, { documents, count: documents.length });
   } catch (error) {
-    console.error(
-      "GET /api/farmer/documents error:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to fetch documents",
-      },
-      { status: 500 }
-    );
+    console.error("GET /api/farmer/documents error:", error);
+    return json(false, "Failed to fetch documents", 500, {
+      ...(process.env.NODE_ENV === "development" && { error: error.message }),
+    });
   }
 }
 
-/*
- * ---------------------------------------------------------
- * POST DOCUMENT
- * ---------------------------------------------------------
- */
-
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
-
-    await connectDB();
-
-    const farmer = await User.findById(
-      session.user.id
-    );
-
-    if (!farmer) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Farmer not found",
-        },
-        { status: 404 }
-      );
-    }
-
-    if (farmer.role !== "FARMER") {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Only farmers can upload documents",
-        },
-        { status: 403 }
-      );
-    }
+    const { farmer, response } = await getAuthenticatedFarmer();
+    if (response) return response;
 
     const formData = await request.formData();
-
     const file = formData.get("file");
     const type = formData.get("type");
     const name = formData.get("name");
 
-    /*
-     * ---------------------------------------------------------
-     * VALIDATE
-     * ---------------------------------------------------------
-     */
+    if (!file || typeof file === "string") return json(false, "Document file is required", 400);
+    if (!ALLOWED_DOC_TYPES.includes(type)) return json(false, "Invalid document type", 400);
+    if (!name || typeof name !== "string" || name.trim().length < 2) return json(false, "Document name is required", 400);
+    if (file.size > 10 * 1024 * 1024) return json(false, "Document must be smaller than 10 MB", 400);
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) return json(false, "Only PDF, JPG, PNG and WEBP files are allowed", 400);
 
-    if (!file || typeof file === "string") {
-      return NextResponse.json(
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const resourceType = file.type === "application/pdf" ? "raw" : "image";
+
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
         {
-          success: false,
-          message: "Document file is required",
+          folder: `agrinex/farmers/${farmer._id}/documents`,
+          resource_type: resourceType,
+          use_filename: true,
+          unique_filename: true,
+          overwrite: false,
+          tags: ["agrinex", "farmer-document", String(farmer._id), type],
         },
-        { status: 400 }
+        (error, result) => (error ? reject(error) : resolve(result))
       );
-    }
-
-    const allowedTypes = [
-      "IDENTITY_PROOF",
-      "LAND_RECORD",
-      "BANK_PROOF",
-      "OTHER",
-    ];
-
-    if (!allowedTypes.includes(type)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid document type",
-        },
-        { status: 400 }
-      );
-    }
-
-    if (
-      !name ||
-      typeof name !== "string" ||
-      name.trim().length < 2
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Document name is required",
-        },
-        { status: 400 }
-      );
-    }
-
-    /*
-     * 10 MB maximum
-     */
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Document must be smaller than 10 MB",
-        },
-        { status: 400 }
-      );
-    }
-
-    const allowedMimeTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/webp",
-      "application/pdf",
-    ];
-
-    if (!allowedMimeTypes.includes(file.type)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Only PDF, JPG, PNG and WEBP files are allowed",
-        },
-        { status: 400 }
-      );
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * UPLOAD TO CLOUDINARY
-     * ---------------------------------------------------------
-     */
-
-    const bytes = await file.arrayBuffer();
-
-    const buffer = Buffer.from(bytes);
-
-    const resourceType =
-      file.type === "application/pdf"
-        ? "raw"
-        : "image";
-
-    const uploadResult =
-      await new Promise((resolve, reject) => {
-        const stream =
-          cloudinary.uploader.upload_stream(
-            {
-              folder: "agrinex/farmers/documents",
-              resource_type: resourceType,
-            },
-            (error, result) => {
-              if (error) {
-                reject(error);
-              } else {
-                resolve(result);
-              }
-            }
-          );
-
-        stream.end(buffer);
-      });
-
-    /*
-     * ---------------------------------------------------------
-     * SAVE DOCUMENT
-     * ---------------------------------------------------------
-     */
+      stream.end(buffer);
+    });
 
     const document = {
       type,
@@ -251,181 +87,47 @@ export async function POST(request) {
     };
 
     farmer.documents.push(document);
-
+    farmer.onboardingSkipped = false;
     await farmer.save();
 
-    /*
-     * Return the newly created document
-     */
-    const savedDocument =
-      farmer.documents[
-        farmer.documents.length - 1
-      ];
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Document uploaded successfully",
-        document: savedDocument,
-      },
-      { status: 201 }
-    );
+    return json(true, "Document uploaded successfully", 201, {
+      document: farmer.documents[farmer.documents.length - 1],
+    });
   } catch (error) {
-    console.error(
-      "POST /api/farmer/documents error:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to upload document",
-        error:
-          process.env.NODE_ENV === "development"
-            ? error.message
-            : undefined,
-      },
-      { status: 500 }
-    );
+    console.error("POST /api/farmer/documents error:", error);
+    return json(false, "Failed to upload document", 500, {
+      ...(process.env.NODE_ENV === "development" && { error: error.message }),
+    });
   }
 }
 
-/*
- * ---------------------------------------------------------
- * DELETE DOCUMENT
- * ---------------------------------------------------------
- */
-
 export async function DELETE(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const { farmer, response } = await getAuthenticatedFarmer();
+    if (response) return response;
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
+    const documentId = new URL(request.url).searchParams.get("id");
+    if (!documentId) return json(false, "Document ID is required", 400);
 
-    await connectDB();
+    const document = farmer.documents.id(documentId);
+    if (!document) return json(false, "Document not found", 404);
+    if (document.status === "VERIFIED") return json(false, "Verified documents cannot be deleted", 403);
 
-    const { searchParams } =
-      new URL(request.url);
-
-    const documentId =
-      searchParams.get("id");
-
-    if (!documentId) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Document ID is required",
-        },
-        { status: 400 }
-      );
-    }
-
-    const farmer = await User.findById(
-      session.user.id
-    );
-
-    if (!farmer) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Farmer not found",
-        },
-        { status: 404 }
-      );
-    }
-
-    const document =
-      farmer.documents.id(documentId);
-
-    if (!document) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Document not found",
-        },
-        { status: 404 }
-      );
-    }
-
-    /*
-     * Verified documents should not be deleted
-     * by the farmer.
-     */
-
-    if (document.status === "VERIFIED") {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Verified documents cannot be deleted",
-        },
-        { status: 403 }
-      );
-    }
-
-    /*
-     * Keep Cloudinary information before
-     * removing the MongoDB subdocument.
-     */
-
-    const publicId = document.publicId;
-
-    const resourceType =
-      document.mimeType ===
-      "application/pdf"
-        ? "raw"
-        : "image";
-
-    /*
-     * Remove from MongoDB
-     */
+    const { publicId, mimeType } = document;
     document.deleteOne();
-
     await farmer.save();
 
-    /*
-     * Remove from Cloudinary
-     */
     if (publicId) {
-      try {
-        await cloudinary.uploader.destroy(
-          publicId,
-          {
-            resource_type: resourceType,
-          }
-        );
-      } catch (cloudinaryError) {
-        console.error(
-          "Cloudinary document deletion failed:",
-          cloudinaryError
-        );
-      }
+      cloudinary.uploader
+        .destroy(publicId, { resource_type: mimeType === "application/pdf" ? "raw" : "image" })
+        .catch((err) => console.error("Cloudinary document deletion failed:", err));
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "Document deleted successfully",
-    });
+    return json(true, "Document deleted successfully");
   } catch (error) {
-    console.error(
-      "DELETE /api/farmer/documents error:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to delete document",
-      },
-      { status: 500 }
-    );
+    console.error("DELETE /api/farmer/documents error:", error);
+    return json(false, "Failed to delete document", 500, {
+      ...(process.env.NODE_ENV === "development" && { error: error.message }),
+    });
   }
 }

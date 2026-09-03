@@ -12,11 +12,13 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-
 export const metadata = {
   title: "AGRINEX — Smart Agriculture Platform",
   description:
-    "AGRINEX is an AI-powered agriculture platform for crop insights, disease detection, weather information, market intelligence, government schemes, and smart farming assistance.",
+    "AGRINEX is an AI-powered smart agriculture platform for crop insights, disease detection, weather information, market intelligence, government schemes, smart farming assistance, and digital agricultural procurement.",
+  icons: {
+    icon: "/favicon-32x32.png",
+  },
 };
 
 export default function RootLayout({ children }) {

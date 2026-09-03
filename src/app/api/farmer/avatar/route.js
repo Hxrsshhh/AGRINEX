@@ -1,209 +1,61 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-
 import connectDB from "@/lib/db";
-import User from "@/models/User";
+import Farmer from "@/models/Farmer";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import cloudinary from "@/lib/cloudinary";
 
 export const dynamic = "force-dynamic";
 
+const json = (success, message, status = 200, extra = {}) =>
+  NextResponse.json({ success, message, ...extra }, { status });
+
 export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
+    if (!session?.user?.id) return json(false, "Unauthorized", 401);
+    if (session.user.role !== "FARMER") return json(false, "Only farmers can upload avatars", 403);
 
     await connectDB();
+    const farmer = await Farmer.findById(session.user.id);
+    if (!farmer) return json(false, "Farmer not found", 404);
+    if (!farmer.isActive) return json(false, "Farmer account is inactive", 403);
 
-    const farmer = await User.findById(
-      session.user.id
-    );
+    const file = (await request.formData()).get("avatar");
+    if (!file || typeof file === "string") return json(false, "Avatar image is required", 400);
 
-    if (!farmer) {
-      return NextResponse.json(
+    const allowed = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) return json(false, "Only JPG, PNG and WEBP images are allowed", 400);
+    if (file.size > 5 * 1024 * 1024) return json(false, "Avatar image must be smaller than 5 MB", 400);
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
         {
-          success: false,
-          message: "Farmer not found",
+          folder: "agrinex/farmers/avatars",
+          resource_type: "image",
+          transformation: [{ width: 500, height: 500, crop: "fill", gravity: "face" }],
         },
-        { status: 404 }
+        (err, res) => (err ? reject(err) : resolve(res))
+      );
+      stream.end(buffer);
+    });
+
+    if (farmer.avatar?.publicId && farmer.avatar.publicId !== result.public_id) {
+      cloudinary.uploader.destroy(farmer.avatar.publicId, { resource_type: "image" }).catch((e) =>
+        console.error("Failed to delete old farmer avatar:", e)
       );
     }
 
-    if (farmer.role !== "FARMER") {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Only farmers can upload avatars",
-        },
-        { status: 403 }
-      );
-    }
-
-    const formData = await request.formData();
-
-    const file = formData.get("avatar");
-
-    if (!file || typeof file === "string") {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Avatar image is required",
-        },
-        { status: 400 }
-      );
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * VALIDATE FILE
-     * ---------------------------------------------------------
-     */
-
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/webp",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Only JPG, PNG and WEBP images are allowed",
-        },
-        { status: 400 }
-      );
-    }
-
-    /*
-     * 5 MB maximum
-     */
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Avatar image must be smaller than 5 MB",
-        },
-        { status: 400 }
-      );
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * CONVERT FILE TO BUFFER
-     * ---------------------------------------------------------
-     */
-
-    const bytes = await file.arrayBuffer();
-
-    const buffer = Buffer.from(bytes);
-
-    /*
-     * ---------------------------------------------------------
-     * CLOUDINARY UPLOAD
-     * ---------------------------------------------------------
-     */
-
-    const uploadResult =
-      await new Promise((resolve, reject) => {
-        const stream =
-          cloudinary.uploader.upload_stream(
-            {
-              folder: "agrinex/farmers/avatars",
-              resource_type: "image",
-              transformation: [
-                {
-                  width: 500,
-                  height: 500,
-                  crop: "fill",
-                  gravity: "face",
-                },
-              ],
-            },
-            (error, result) => {
-              if (error) {
-                reject(error);
-              } else {
-                resolve(result);
-              }
-            }
-          );
-
-        stream.end(buffer);
-      });
-
-    /*
-     * ---------------------------------------------------------
-     * DELETE OLD AVATAR
-     * ---------------------------------------------------------
-     */
-
-    if (
-      farmer.avatar?.publicId &&
-      farmer.avatar.publicId !==
-        uploadResult.public_id
-    ) {
-      try {
-        await cloudinary.uploader.destroy(
-          farmer.avatar.publicId,
-          {
-            resource_type: "image",
-          }
-        );
-      } catch (deleteError) {
-        console.error(
-          "Failed to delete old avatar:",
-          deleteError
-        );
-      }
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * SAVE AVATAR
-     * ---------------------------------------------------------
-     */
-
-    farmer.avatar = {
-      url: uploadResult.secure_url,
-      publicId: uploadResult.public_id,
-    };
-
+    farmer.avatar = { url: result.secure_url, publicId: result.public_id };
     await farmer.save();
 
-    return NextResponse.json({
-      success: true,
-      message: "Avatar updated successfully",
-      avatar: farmer.avatar,
-    });
+    return json(true, "Avatar updated successfully", 200, { avatar: farmer.avatar });
   } catch (error) {
-    console.error(
-      "POST /api/farmer/avatar error:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to upload avatar",
-        error:
-          process.env.NODE_ENV === "development"
-            ? error.message
-            : undefined,
-      },
-      { status: 500 }
-    );
+    console.error("POST /api/farmer/avatar error:", error);
+    return json(false, "Failed to upload avatar", 500, {
+      ...(process.env.NODE_ENV === "development" && { error: error.message }),
+    });
   }
 }

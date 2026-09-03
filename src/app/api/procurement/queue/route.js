@@ -4,523 +4,131 @@ import mongoose from "mongoose";
 
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import connectDB from "@/lib/db";
-
+import Farmer from "@/models/Farmer";
 import Booking from "@/models/Booking";
 import Queue from "@/models/Queue";
 import ProcurementCentre from "@/models/ProcurementCentre";
-
-// IMPORTANT:
-// These imports register the models with mongoose.
-// Booking references Commodity, Slot and ProcurementCentre.
 import Commodity from "@/models/Commodity";
 import Slot from "@/models/Slot";
+
+const json = (success, message, status = 200, extra = {}, headers = {}) =>
+  NextResponse.json({ success, message, ...extra }, { status, headers });
+
+const NO_CACHE = { "Cache-Control": "no-store, max-age=0" };
+const ACTIVE_STATUSES = ["WAITING", "CALLED", "PROCESSING"];
 
 export async function GET() {
   try {
     await connectDB();
-
-    // ============================================================
-    // AUTHENTICATION
-    // ============================================================
-
     const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return json(false, "Authentication required", 401);
+    if (session.user.role !== "FARMER") return json(false, "Only farmers can access the queue", 403);
+    if (!mongoose.Types.ObjectId.isValid(session.user.id)) return json(false, "Invalid farmer session", 401);
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Authentication required",
-        },
-        { status: 401 }
-      );
-    }
-
-    // ============================================================
-    // FARMER CHECK
-    // ============================================================
-
-    if (session.user.role !== "FARMER") {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Only farmers can access the queue",
-        },
-        { status: 403 }
-      );
-    }
-
-    const farmerId = session.user.id;
-
-    if (!mongoose.Types.ObjectId.isValid(farmerId)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid farmer session",
-        },
-        { status: 401 }
-      );
-    }
-
-    // ============================================================
-    // FIND ACTIVE BOOKING
-    // ============================================================
+    const farmer = await Farmer.findOne({ _id: session.user.id, role: "FARMER", isActive: true })
+      .select("_id name mobile preferredCentre").lean();
+    if (!farmer) return json(false, "Farmer account not found or inactive", 401);
 
     const booking = await Booking.findOne({
-      farmerId,
-      status: {
-        $in: ["PENDING", "CONFIRMED", "CHECKED_IN"],
-      },
+      farmerId: farmer._id,
+      status: { $in: ["PENDING", "CONFIRMED", "CHECKED_IN"] },
     })
-      .sort({
-        createdAt: -1,
-      })
-      .populate({
-        path: "centreId",
-        select:
-          "centreId name address contactNumber operatingHours processingCapacity dailyCapacity status",
-      })
-      .populate({
-        path: "commodityId",
-        select:
-          "name code category unit minimumSupportPrice",
-      })
-      .populate({
-        path: "slotId",
-        select:
-          "date startTime endTime capacity bookedCount status isActive",
-      })
+      .sort({ createdAt: -1 })
+      .populate({ path: "centreId", select: "centreId name address contactNumber operatingHours processingCapacity dailyCapacity status" })
+      .populate({ path: "commodityId", select: "name code category unit minimumSupportPrice" })
+      .populate({ path: "slotId", select: "date startTime endTime capacity bookedCount status isActive" })
       .lean();
 
-    // ============================================================
-    // NO ACTIVE BOOKING
-    // ============================================================
-
     if (!booking) {
-      return NextResponse.json(
-        {
-          success: true,
-          hasBooking: false,
-          hasQueue: false,
-          message: "No active procurement booking found",
-          data: null,
-        },
-        {
-          status: 200,
-          headers: {
-            "Cache-Control": "no-store",
-          },
-        }
-      );
+      return json(true, "No active procurement booking found", 200, { hasBooking: false, hasQueue: false, data: null }, NO_CACHE);
     }
 
-    // ============================================================
-    // FIND FARMER QUEUE ENTRY
-    // ============================================================
-
-    const myQueue = await Queue.findOne({
-      bookingId: booking._id,
-      farmerId,
-    }).lean();
-
-    // ============================================================
-    // BOOKING EXISTS BUT QUEUE DOES NOT
-    // ============================================================
-
+    const myQueue = await Queue.findOne({ bookingId: booking._id, farmerId: farmer._id }).lean();
     if (!myQueue) {
-      return NextResponse.json(
-        {
-          success: true,
-          hasBooking: true,
-          hasQueue: false,
-          message: "Queue entry not found",
-          data: {
-            booking: {
-              bookingId: booking.bookingId,
-              status: booking.status,
-              expectedQuantity: booking.expectedQuantity,
-              vehicleType: booking.vehicleType,
-              vehicleNumber: booking.vehicleNumber,
-              centre: booking.centreId,
-              commodity: booking.commodityId,
-              slot: booking.slotId,
-            },
+      return json(true, "Queue entry not found", 200, {
+        hasBooking: true, hasQueue: false,
+        data: {
+          booking: {
+            id: booking._id, bookingId: booking.bookingId, status: booking.status,
+            expectedQuantity: booking.expectedQuantity, vehicleType: booking.vehicleType,
+            vehicleNumber: booking.vehicleNumber, centre: booking.centreId,
+            commodity: booking.commodityId, slot: booking.slotId,
           },
         },
-        {
-          status: 200,
-          headers: {
-            "Cache-Control": "no-store",
-          },
-        }
-      );
+      }, NO_CACHE);
     }
-
-    // ============================================================
-    // QUEUE DATE
-    // ============================================================
 
     const queueDate = new Date(myQueue.queueDate);
-
+    if (!myQueue.queueDate || Number.isNaN(queueDate.getTime())) return json(false, "Invalid queue date", 500);
     queueDate.setHours(0, 0, 0, 0);
 
     const nextDate = new Date(queueDate);
-
     nextDate.setDate(nextDate.getDate() + 1);
 
-    // ============================================================
-    // ACTIVE STATUSES
-    // ============================================================
-
-    const activeStatuses = [
-      "WAITING",
-      "CALLED",
-      "PROCESSING",
-    ];
-
-    // ============================================================
-    // GET ALL QUEUE ENTRIES FOR THIS CENTRE AND DATE
-    // ============================================================
-
-    const allQueueEntries = await Queue.find({
+    const allEntries = await Queue.find({
       centreId: myQueue.centreId,
-      queueDate: {
-        $gte: queueDate,
-        $lt: nextDate,
-      },
-    })
-      .sort({
-        position: 1,
-        createdAt: 1,
-      })
-      .lean();
+      queueDate: { $gte: queueDate, $lt: nextDate },
+    }).sort({ position: 1, createdAt: 1 }).lean();
 
-    // ============================================================
-    // ACTIVE QUEUE
-    // ============================================================
+    const activeEntries = allEntries.filter((e) => ACTIVE_STATUSES.includes(e.status));
+    const myPos = Number(myQueue.position || 0);
+    const farmersAhead = activeEntries.filter((e) => Number(e.position || 0) < myPos && String(e._id) !== String(myQueue._id)).length;
+    const currentPosition = ACTIVE_STATUSES.includes(myQueue.status) ? farmersAhead + 1 : null;
+    const estimatedWait = myQueue.status === "WAITING" ? farmersAhead * 10 : 0;
 
-    const activeEntries = allQueueEntries.filter((entry) =>
-      activeStatuses.includes(entry.status)
-    );
-
-    // ============================================================
-    // CURRENT FARMER POSITION
-    //
-    // The original position is stored when the booking is created.
-    //
-    // Current position = active farmers ahead + 1
-    // ============================================================
-
-    const myOriginalPosition = Number(
-      myQueue.position || 0
-    );
-
-    const farmersAhead = activeEntries.filter(
-      (entry) => {
-        const entryPosition = Number(
-          entry.position || 0
-        );
-
-        return (
-          entryPosition < myOriginalPosition &&
-          String(entry._id) !== String(myQueue._id)
-        );
-      }
-    ).length;
-
-    let currentPosition = null;
-
-    if (
-      myQueue.status === "WAITING" ||
-      myQueue.status === "CALLED" ||
-      myQueue.status === "PROCESSING"
-    ) {
-      currentPosition = farmersAhead + 1;
-    }
-
-    // ============================================================
-    // ESTIMATED WAIT
-    //
-    // 10 minutes per active farmer ahead.
-    //
-    // CALLED / PROCESSING = 0
-    // ============================================================
-
-    let estimatedWait = 0;
-
-    if (
-      myQueue.status === "WAITING"
-    ) {
-      estimatedWait = farmersAhead * 10;
-    }
-
-    // ============================================================
-    // RECENT QUEUE ACTIVITY
-    // ============================================================
-
-    const recentActivity = allQueueEntries
-      .filter(
-        (entry) =>
-          activeStatuses.includes(entry.status) ||
-          entry.status === "COMPLETED"
-      )
-      .sort((a, b) => {
-        const aPosition = Number(
-          a.position || 0
-        );
-
-        const bPosition = Number(
-          b.position || 0
-        );
-
-        return aPosition - bPosition;
-      })
+    const recentActivity = allEntries
+      .filter((e) => ACTIVE_STATUSES.includes(e.status) || e.status === "COMPLETED")
+      .sort((a, b) => Number(a.position || 0) - Number(b.position || 0))
       .slice(0, 8)
-      .map((entry) => ({
-        id: entry._id,
-
-        tokenNumber:
-          entry.tokenNumber,
-
-        position:
-          entry.position,
-
-        status:
-          entry.status,
-
-        isYou:
-          String(entry._id) ===
-          String(myQueue._id),
-
-        createdAt:
-          entry.createdAt,
-
-        arrivalTime:
-          entry.arrivalTime,
-
-        calledTime:
-          entry.calledTime,
-
-        processingStartTime:
-          entry.processingStartTime,
-
-        completionTime:
-          entry.completionTime,
+      .map((e) => ({
+        id: e._id, tokenNumber: e.tokenNumber, position: e.position, status: e.status,
+        isYou: String(e._id) === String(myQueue._id), createdAt: e.createdAt,
+        arrivalTime: e.arrivalTime, calledTime: e.calledTime,
+        processingStartTime: e.processingStartTime, completionTime: e.completionTime,
       }));
 
-    // ============================================================
-    // CENTRE CAPACITY
-    // ============================================================
+    const processingCapacity = Math.max(Number(booking.centreId?.processingCapacity || 1), 1);
+    const waits = activeEntries.map((e) => Number(e.estimatedWaitMin || 0)).filter((v) => v > 0);
+    const averageWait = waits.length ? Math.round(waits.reduce((sum, v) => sum + v, 0) / waits.length) : 0;
 
-    const centre = booking.centreId;
-
-    const activeQueueCount =
-      activeEntries.length;
-
-    const processingCapacity = Math.max(
-      Number(
-        centre?.processingCapacity || 1
-      ),
-      1
-    );
-
-    /*
-     * Load represents how many active queue entries
-     * exist compared with the centre processing capacity.
-     *
-     * Capped at 100%.
-     */
-
-    const loadPercent = Math.min(
-      100,
-      Math.round(
-        (activeQueueCount /
-          processingCapacity) *
-          100
-      )
-    );
-
-    // ============================================================
-    // AVERAGE WAIT
-    // ============================================================
-
-    const waits = activeEntries
-      .map((entry) =>
-        Number(
-          entry.estimatedWaitMin || 0
-        )
-      )
-      .filter(
-        (value) => value > 0
-      );
-
-    const averageWait =
-      waits.length > 0
-        ? Math.round(
-            waits.reduce(
-              (sum, value) =>
-                sum + value,
-              0
-            ) / waits.length
-          )
-        : 0;
-
-    // ============================================================
-    // RESPONSE
-    // ============================================================
-
-    return NextResponse.json(
-      {
-        success: true,
-
-        hasBooking: true,
-
-        hasQueue: true,
-
-        data: {
-          // ------------------------------------------------------
-          // BOOKING IDENTIFICATION
-          // ------------------------------------------------------
-
-          bookingId:
-            booking.bookingId,
-
-          bookingMongoId:
-            booking._id,
-
-          // ------------------------------------------------------
-          // QUEUE
-          // ------------------------------------------------------
-
-          tokenNumber:
-            myQueue.tokenNumber,
-
-          status:
-            myQueue.status,
-
-          position:
-            currentPosition,
-
-          originalPosition:
-            myOriginalPosition,
-
-          farmersAhead,
-
-          estimatedWaitMin:
-            estimatedWait,
-
-          queueDate:
-            myQueue.queueDate,
-
-          arrivalTime:
-            myQueue.arrivalTime,
-
-          calledTime:
-            myQueue.calledTime,
-
-          processingStartTime:
-            myQueue.processingStartTime,
-
-          completionTime:
-            myQueue.completionTime,
-
-          // ------------------------------------------------------
-          // BOOKING DETAILS
-          // ------------------------------------------------------
-
-          booking: {
-            id:
-              booking._id,
-
-            bookingId:
-              booking.bookingId,
-
-            status:
-              booking.status,
-
-            expectedQuantity:
-              booking.expectedQuantity,
-
-            vehicleType:
-              booking.vehicleType,
-
-            vehicleNumber:
-              booking.vehicleNumber,
-          },
-
-          // ------------------------------------------------------
-          // CENTRE
-          // ------------------------------------------------------
-
-          centre:
-            booking.centreId,
-
-          // ------------------------------------------------------
-          // COMMODITY
-          // ------------------------------------------------------
-
-          commodity:
-            booking.commodityId,
-
-          // ------------------------------------------------------
-          // SLOT
-          // ------------------------------------------------------
-
-          slot:
-            booking.slotId,
-
-          // ------------------------------------------------------
-          // CAPACITY
-          // ------------------------------------------------------
-
-          capacity: {
-            activeQueueCount,
-
-            processingCapacity,
-
-            loadPercent,
-
-            averageWaitMin:
-              averageWait,
-          },
-
-          // ------------------------------------------------------
-          // RECENT ACTIVITY
-          // ------------------------------------------------------
-
-          recentActivity,
+    return json(true, undefined, 200, {
+      hasBooking: true,
+      hasQueue: true,
+      data: {
+        farmer: { id: farmer._id, name: farmer.name, mobile: farmer.mobile },
+        bookingId: booking.bookingId,
+        bookingMongoId: booking._id,
+        tokenNumber: myQueue.tokenNumber,
+        status: myQueue.status,
+        position: currentPosition,
+        originalPosition: myPos,
+        farmersAhead,
+        estimatedWaitMin: estimatedWait,
+        queueDate: myQueue.queueDate,
+        arrivalTime: myQueue.arrivalTime,
+        calledTime: myQueue.calledTime,
+        processingStartTime: myQueue.processingStartTime,
+        completionTime: myQueue.completionTime,
+        booking: {
+          id: booking._id, bookingId: booking.bookingId, status: booking.status,
+          expectedQuantity: booking.expectedQuantity, vehicleType: booking.vehicleType, vehicleNumber: booking.vehicleNumber,
         },
+        centre: booking.centreId,
+        commodity: booking.commodityId,
+        slot: booking.slotId,
+        capacity: {
+          activeQueueCount: activeEntries.length,
+          processingCapacity,
+          loadPercent: Math.min(100, Math.round((activeEntries.length / processingCapacity) * 100)),
+          averageWaitMin: averageWait,
+        },
+        recentActivity,
       },
-      {
-        status: 200,
-
-        headers: {
-          "Cache-Control":
-            "no-store, max-age=0",
-        },
-      }
-    );
+    }, NO_CACHE);
   } catch (error) {
-    console.error(
-      "GET /api/procurement/queue error:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        success: false,
-
-        message:
-          "Failed to fetch live queue",
-
-        error:
-          process.env.NODE_ENV ===
-          "development"
-            ? error.message
-            : undefined,
-      },
-      {
-        status: 500,
-      }
-    );
+    console.error("GET /api/procurement/queue error:", error);
+    return json(false, "Failed to fetch live queue", 500, {
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 }
