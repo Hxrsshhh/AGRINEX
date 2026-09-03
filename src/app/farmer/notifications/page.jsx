@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Bell,
   BellRing,
@@ -14,6 +14,7 @@ import {
   Truck,
   Users,
   Wheat,
+  WalletCards,
   X,
 } from "lucide-react";
 
@@ -21,79 +22,155 @@ import {
    NOTIFICATION DATA
 ============================================================ */
 
-const INITIAL_NOTIFICATIONS = [
-  {
-    id: 1,
-    type: "queue",
-    title: "Your queue position changed",
-    message:
-      "You are now #8 in the procurement queue. 7 farmers are ahead of you.",
-    time: "5 min ago",
-    unread: true,
-    icon: Users,
-  },
-  {
-    id: 2,
-    type: "booking",
-    title: "Booking confirmed",
-    message:
-      "Your procurement slot at XYZ Procurement Centre has been confirmed.",
-    time: "32 min ago",
-    unread: true,
-    icon: CalendarDays,
-  },
-  {
-    id: 3,
-    type: "reminder",
-    title: "Procurement slot reminder",
-    message:
-      "Your procurement window is tomorrow from 10:00 – 11:00 AM.",
-    time: "2 hrs ago",
-    unread: true,
-    icon: Clock3,
-  },
-  {
-    id: 4,
-    type: "procurement",
-    title: "Paddy procurement is active",
-    message:
-      "Paddy procurement is currently available at your selected centre.",
-    time: "Yesterday",
-    unread: false,
-    icon: Wheat,
-  },
-  {
-    id: 5,
-    type: "queue",
-    title: "Queue is moving normally",
-    message:
-      "The average waiting time at XYZ Procurement Centre is currently 22 minutes.",
-    time: "Yesterday",
-    unread: false,
-    icon: BellRing,
-  },
-  {
-    id: 6,
-    type: "system",
-    title: "Centre information updated",
-    message:
-      "Procurement centre operating information has been updated.",
-    time: "2 days ago",
-    unread: false,
-    icon: Info,
-  },
-];
+// const INITIAL_NOTIFICATIONS = [
+//   {
+//     id: 1,
+//     type: "queue",
+//     title: "Your queue position changed",
+//     message:
+//       "You are now #8 in the procurement queue. 7 farmers are ahead of you.",
+//     time: "5 min ago",
+//     unread: true,
+//     icon: Users,
+//   },
+//   {
+//     id: 2,
+//     type: "booking",
+//     title: "Booking confirmed",
+//     message:
+//       "Your procurement slot at XYZ Procurement Centre has been confirmed.",
+//     time: "32 min ago",
+//     unread: true,
+//     icon: CalendarDays,
+//   },
+//   {
+//     id: 3,
+//     type: "reminder",
+//     title: "Procurement slot reminder",
+//     message:
+//       "Your procurement window is tomorrow from 10:00 – 11:00 AM.",
+//     time: "2 hrs ago",
+//     unread: true,
+//     icon: Clock3,
+//   },
+//   {
+//     id: 4,
+//     type: "procurement",
+//     title: "Paddy procurement is active",
+//     message:
+//       "Paddy procurement is currently available at your selected centre.",
+//     time: "Yesterday",
+//     unread: false,
+//     icon: Wheat,
+//   },
+//   {
+//     id: 5,
+//     type: "queue",
+//     title: "Queue is moving normally",
+//     message:
+//       "The average waiting time at XYZ Procurement Centre is currently 22 minutes.",
+//     time: "Yesterday",
+//     unread: false,
+//     icon: BellRing,
+//   },
+//   {
+//     id: 6,
+//     type: "system",
+//     title: "Centre information updated",
+//     message:
+//       "Procurement centre operating information has been updated.",
+//     time: "2 days ago",
+//     unread: false,
+//     icon: Info,
+//   },
+//   {
+//     id: 7,
+//     type: "payment",
+//     title: "Payment Completed",
+//     message: "Your procurement payment has been successfully processed.",
+//     time: "2 hr ago",
+//     unread: false,
+//     icon: WalletCards,
+//   }
+// ];
 
 /* ============================================================
    MAIN PAGE
 ============================================================ */
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedNotification, setSelectedNotification] = useState(null);
 
-  const filters = ["All", "Unread", "Booking", "Queue", "Procurement"];
+  // initialize icons
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case "Booking":
+        return CalendarDays;
+
+      case "Queue":
+        return Users;
+
+      case "Procurement":
+        return Wheat;
+
+      case "Payment":
+        return WalletCards;
+
+      default:
+        return BellRing;
+    }
+  };
+
+  // Fetch Notification API calling
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch("/api/notification/get-all-notification");
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch notifications");
+      }
+
+      const formattedNotifications = (
+        data.notifications || []
+      ).map((notification) => ({
+        id: notification._id,
+        type: notification.type.toLowerCase(),
+        title: notification.title,
+        message: notification.message,
+        time: new Date(
+          notification.createdAt
+        ).toLocaleString(),
+        unread: !notification.isRead,
+        icon: getNotificationIcon(notification.type),
+      }));
+
+      setNotifications(formattedNotifications);
+
+
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      setError(error.message || "Failed to fetch notifications");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const filters = ["All", "Unread", "Booking", "Queue", "Procurement", "Payment"];
 
   /* ==========================================================
      FILTER
@@ -105,6 +182,7 @@ export default function NotificationsPage() {
     if (activeFilter === "Booking") return notification.type === "booking";
     if (activeFilter === "Queue") return notification.type === "queue";
     if (activeFilter === "Procurement") return notification.type === "procurement";
+    if (activeFilter === "Payment") return notification.type === "payment";
     return true;
   });
 
@@ -114,20 +192,83 @@ export default function NotificationsPage() {
      ACTIONS
   ========================================================== */
 
-  const markAsRead = (id) => {
-    setNotifications((current) =>
-      current.map((n) => (n.id === id ? { ...n, unread: false } : n))
-    );
+  const markAsRead = async (id) => {
+    try {
+      const response = await fetch(`/api/notification/update-status/${id}`, {
+        method: "PATCH",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to mark notification as read"
+        );
+      }
+
+      // Update UI only after backend successfully updates MongoDB
+      setNotifications((current) =>
+        current.map((notification) => (notification.id === id ? { ...notification, unread: false } : notification))
+      );
+    } catch (error) {
+      console.error(
+        "Error marking notification as read:",
+        error
+      );
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications((current) =>
-      current.map((n) => ({ ...n, unread: false }))
-    );
+  const markAllAsRead = async () => {
+    try {
+      const response = await fetch("/api/notification/mark-read-all", {
+        method: "PATCH",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to mark all notifications as read"
+        );
+      }
+
+      // Update UI only after backend successfully updates MongoDB
+      setNotifications((current) =>
+        current.map((notification) => ({
+          ...notification,
+          unread: false,
+        }))
+      );
+    } catch (error) {
+      console.error(
+        "Error marking all notifications as read:",
+        error
+      );
+    }
   };
 
-  const deleteNotification = (id) => {
-    setNotifications((current) => current.filter((n) => n.id !== id));
+  const deleteNotification = async (id) => {
+    try {
+      const response = await fetch(`/api/notification/delete-notification/${id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to delete notification"
+        );
+      }
+
+      // Update UI only after backend successfully updates MongoDB
+      setNotifications((current) => current.filter((notification) => notification.id !== id));
+    } catch (error) {
+      console.error(
+        "Error deleting notification:",
+        error
+      );
+    }
   };
 
   const openNotification = (notification) => {
@@ -178,9 +319,9 @@ export default function NotificationsPage() {
 
       {/* Main Container Card */}
       <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-slate-200/80 bg-white/60 shadow-lg shadow-emerald-950/5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 overflow-hidden">
-        
+
         {/* Top Accent Strip */}
-        <div className="h-0.5 w-full bg-gradient-to-r from-emerald-500/20 via-emerald-500 to-lime-500/20" />
+        <div className="h-0.5 w-full bg-linear-to-r from-emerald-500/20 via-emerald-500 to-lime-500/20" />
 
         {/* Filter Strip */}
         <div className="shrink-0 flex items-center justify-between gap-2 border-b border-slate-200/70 dark:border-white/10 bg-slate-50/70 dark:bg-slate-950/30 px-3 py-2">
@@ -190,11 +331,10 @@ export default function NotificationsPage() {
                 key={filter}
                 type="button"
                 onClick={() => setActiveFilter(filter)}
-                className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
-                  activeFilter === filter
-                    ? "bg-emerald-600 text-white"
-                    : "bg-white/80 text-slate-600 hover:text-slate-900 dark:bg-slate-800/60 dark:text-slate-300 border border-slate-200/60 dark:border-white/5"
-                }`}
+                className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${activeFilter === filter
+                  ? "bg-emerald-600 text-white"
+                  : "bg-white/80 text-slate-600 hover:text-slate-900 dark:bg-slate-800/60 dark:text-slate-300 border border-slate-200/60 dark:border-white/5"
+                  }`}
               >
                 {filter}
               </button>
@@ -209,7 +349,7 @@ export default function NotificationsPage() {
 
         {/* 2-Column Split */}
         <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3.5 p-3.5 overflow-y-auto lg:overflow-hidden">
-          
+
           {/* Notification Feed (8 cols) */}
           <section className="lg:col-span-8 flex flex-col min-h-0">
             <div className="flex items-center justify-between pb-2 shrink-0">
@@ -238,7 +378,7 @@ export default function NotificationsPage() {
 
           {/* Right Info Column (4 cols) */}
           <aside className="lg:col-span-4 flex flex-col justify-between gap-3 min-h-0">
-            
+
             {/* Unread Status Widget */}
             <div className="shrink-0 rounded-xl border border-slate-200/70 bg-white/70 dark:border-white/10 dark:bg-slate-800/40 p-3">
               <div className="flex items-center justify-between">
@@ -312,7 +452,7 @@ export default function NotificationsPage() {
 
       {/* Detail Modal */}
       {selectedNotification && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-400 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
           <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900 p-5 shadow-2xl">
             <button
               type="button"
@@ -367,11 +507,10 @@ function NotificationCard({ notification, onOpen, onDelete }) {
   return (
     <div
       onClick={onOpen}
-      className={`group relative flex items-center gap-3 rounded-xl border p-2.5 transition-all cursor-pointer ${
-        notification.unread
-          ? "border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 shadow-sm"
-          : "border-slate-200/80 dark:border-white/5 bg-white/70 dark:bg-slate-800/40 hover:border-emerald-500/40"
-      }`}
+      className={`group relative flex items-center gap-3 rounded-xl border p-2.5 transition-all cursor-pointer ${notification.unread
+        ? "border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 shadow-sm"
+        : "border-slate-200/80 dark:border-white/5 bg-white/70 dark:bg-slate-800/40 hover:border-emerald-500/40"
+        }`}
     >
       {/* Unread Pip */}
       {notification.unread && (
@@ -380,11 +519,10 @@ function NotificationCard({ notification, onOpen, onDelete }) {
 
       {/* Icon */}
       <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-          notification.unread
-            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-            : "bg-slate-100 dark:bg-slate-700/60 text-slate-400"
-        }`}
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${notification.unread
+          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          : "bg-slate-100 dark:bg-slate-700/60 text-slate-400"
+          }`}
       >
         <Icon className="h-4 w-4" />
       </div>
@@ -393,11 +531,10 @@ function NotificationCard({ notification, onOpen, onDelete }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <h4
-            className={`truncate text-xs ${
-              notification.unread
-                ? "font-black text-slate-900 dark:text-white"
-                : "font-semibold text-slate-700 dark:text-slate-300"
-            }`}
+            className={`truncate text-xs ${notification.unread
+              ? "font-black text-slate-900 dark:text-white"
+              : "font-semibold text-slate-700 dark:text-slate-300"
+              }`}
           >
             {notification.title}
           </h4>

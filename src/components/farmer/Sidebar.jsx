@@ -1,5 +1,5 @@
 "use client";
-
+import { useState , useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -19,71 +19,102 @@ import {
   X,
 } from "lucide-react";
 
-/* =========================================================
-   PROCUREMENT MENU
-========================================================= */
-
-const menuItems = [
-  {
-    name: "Dashboard",
-    href: "/farmer/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Bookings",
-    href: "/farmer/book-slot",
-    icon: Calendar,
-  },
-  {
-    name: "Queue",
-    href: "/farmer/queue",
-    icon: Users,
-  },
-  {
-    name: "Procurement",
-    href: "/farmer/procurement",
-    icon: Scale,
-  },
-  {
-    name: "Payments",
-    href: "/farmer/payments",
-    icon: DollarSign,
-  },
-  {
-    name: "Notifications",
-    href: "/farmer/notifications",
-    icon: Bell,
-    badge: "2",
-  },
-];
-
-/* =========================================================
-   ACCOUNT MENU
-========================================================= */
-
-const accountItems = [
-  {
-    name: "Profile",
-    href: "/farmer/profile",
-    icon: User,
-  },
-  {
-    name: "Settings",
-    href: "/farmer/settings",
-    icon: Settings,
-  },
-  {
-    name: "Help & Support",
-    href: "/farmer/help",
-    icon: HelpCircle,
-  },
-];
 
 /* =========================================================
    SIDEBAR
 ========================================================= */
 
 export default function Sidebar({ open, onClose }) {
+  /* =========================================================
+   PROCUREMENT MENU
+========================================================= */
+
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+
+  const fetchUnreadNotificationCount = async () => {
+    try {
+      const response = await fetch(
+        "/api/notification/get-unread-notification-size"
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to fetch unread notification count"
+        );
+      }
+
+      setUnreadNotificationCount(data.unreadCount);
+    } catch (error) {
+      console.error(
+        "Error fetching unread notification count:",
+        error
+      );
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadNotificationCount();
+  }, []);
+
+  const menuItems = [
+    {
+      name: "Dashboard",
+      href: "/farmer/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      name: "Bookings",
+      href: "/farmer/book-slot",
+      icon: Calendar,
+    },
+    {
+      name: "Queue",
+      href: "/farmer/queue",
+      icon: Users,
+    },
+    {
+      name: "Procurement",
+      href: "/farmer/procurement",
+      icon: Scale,
+    },
+    {
+      name: "Payments",
+      href: "/farmer/payments",
+      icon: DollarSign,
+    },
+    {
+      name: "Notifications",
+      href: "/farmer/notifications",
+      icon: Bell,
+      badge: unreadNotificationCount,
+    },
+  ];
+
+  /* =========================================================
+     ACCOUNT MENU
+  ========================================================= */
+
+  const accountItems = [
+    {
+      name: "Profile",
+      href: "/farmer/profile",
+      icon: User,
+    },
+    {
+      name: "Settings",
+      href: "/farmer/settings",
+      icon: Settings,
+    },
+    {
+      name: "Help & Support",
+      href: "/farmer/help",
+      icon: HelpCircle,
+    },
+  ];
+
+
   const pathname = usePathname();
 
   /* -------------------------------------------------------
@@ -277,9 +308,8 @@ export default function Sidebar({ open, onClose }) {
                     transition-all
                     duration-200
 
-                    ${
-                      active
-                        ? `
+                    ${active
+                      ? `
                           bg-emerald-600
                           dark:bg-emerald-600
 
@@ -292,7 +322,7 @@ export default function Sidebar({ open, onClose }) {
                           hover:bg-emerald-700
                           dark:hover:bg-emerald-500
                         `
-                        : `
+                      : `
                           text-slate-600
                           dark:text-slate-400
 
@@ -315,10 +345,9 @@ export default function Sidebar({ open, onClose }) {
 
                       transition-colors
 
-                      ${
-                        active
-                          ? "text-white"
-                          : "text-slate-500 dark:text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-400"
+                      ${active
+                        ? "text-white"
+                        : "text-slate-500 dark:text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-400"
                       }
                     `}
                   />
@@ -345,15 +374,14 @@ export default function Sidebar({ open, onClose }) {
                         text-[9px]
                         font-black
 
-                        ${
-                          active
-                            ? `
+                        ${active
+                          ? `
                               bg-white/20
                               dark:bg-white/20
 
                               text-white
                             `
-                            : `
+                          : `
                               bg-emerald-500/10
                               dark:bg-emerald-400/10
 
@@ -438,9 +466,8 @@ export default function Sidebar({ open, onClose }) {
                     transition-all
                     duration-200
 
-                    ${
-                      active
-                        ? `
+                    ${active
+                      ? `
                           bg-emerald-500/10
                           dark:bg-emerald-400/10
 
@@ -451,7 +478,7 @@ export default function Sidebar({ open, onClose }) {
                           border-emerald-500/10
                           dark:border-emerald-400/10
                         `
-                        : `
+                      : `
                           text-slate-600
                           dark:text-slate-400
 
@@ -469,10 +496,9 @@ export default function Sidebar({ open, onClose }) {
                       w-4
                       h-4
 
-                      ${
-                        active
-                          ? "text-emerald-500 dark:text-emerald-400"
-                          : "text-slate-500 dark:text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-400"
+                      ${active
+                        ? "text-emerald-500 dark:text-emerald-400"
+                        : "text-slate-500 dark:text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-400"
                       }
                     `}
                   />
@@ -592,10 +618,10 @@ export default function Sidebar({ open, onClose }) {
               LOGOUT
           ================================================== */}
 
-         <button
-  type="button"
-  onClick={() => signOut({ callbackUrl: "/signin" })}
-  className="
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: "/signin" })}
+            className="
     mt-3
     w-full
     flex
@@ -613,10 +639,10 @@ export default function Sidebar({ open, onClose }) {
     transition-all
     duration-200
   "
->
-  <LogOut className="w-4 h-4" />
-  <span>Logout</span>
-</button>
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Logout</span>
+          </button>
         </div>
       </aside>
     </>
