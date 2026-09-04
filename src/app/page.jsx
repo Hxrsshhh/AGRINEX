@@ -1,815 +1,580 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Sprout, Calendar, Clock, Users, Building2, Bell, Scale, IndianRupee, Sun, Moon,
-  Menu, X, ChevronRight, ArrowRight, Sparkles, CheckCircle2, AlertCircle, ShieldCheck,
-  MapPin, RefreshCw, Smartphone, Database, Cloud, BarChart3, HelpCircle, Cpu, Radio,
-  Activity, Tractor, ClipboardCheck, WalletCards, Check,
+  User, Camera, MapPin, Phone, Mail, Sprout, ShieldCheck, BadgeCheck,
+  Ruler, FileText, CheckCircle2, X, Building2, Eye, Download, Clock3,
+  Globe2, Bell, Smartphone, MessageCircle, CalendarDays, Activity,
+  Sparkles, RefreshCw, ArrowRight
 } from "lucide-react";
-import { useTheme } from "next-themes";
-import Link from "next/link";
 
-const fadeInUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
+const EMPTY_FARMER = {
+  name: "",
+  avatar: { url: null, publicId: null },
+  mobile: "",
+  email: "",
+  role: "FARMER",
+  verification: { isVerified: false, isPhoneVerified: false, verifiedAt: null, verifiedBy: null, verifiedAtCentre: null },
+  isActive: true,
+  onboardingCompleted: false,
+  onboardingSkipped: false,
+  onboardingCompletedAt: null,
+  farmLocation: { state: "", district: "", village: "", pincode: "" },
+  farm: { landArea: null, landUnit: "Acre", mainCrop: "" },
+  preferredCentre: null,
+  documents: [],
+  designation: null,
+  officerCentre: null,
+  adminLevel: null,
+  preferredLanguage: "English",
+  notifications: { sms: true, whatsapp: true, push: true },
+  lastLogin: null,
 };
 
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+const LANGUAGES = {
+  en: "English",
+  English: "English",
+  hi: "हिन्दी (Hindi)",
+  "हिन्दी (Hindi)": "हिन्दी (Hindi)",
+  bn: "বাংলা (Bengali)",
+  or: "ଓଡ଼ିଆ (Odia)",
+  te: "తెలుగు (Telugu)",
+  "తెలుగు (Telugu)": "తెలుగు (Telugu)",
+  mr: "मराठी (Marathi)",
+  "मराठी (Marathi)": "मराठी (Marathi)",
+  "ਪੰਜਾਬੀ (Punjabi)": "ਪੰਜਾਬੀ (Punjabi)",
+  "தமிழ் (Tamil)": "தமிழ் (Tamil)",
 };
 
-const Navbar = () => {
-  const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const toggleTheme = () => setTheme(resolvedTheme === "dark" ? "light" : "dark");
-
-  return (
-    <header className={`fixed top-0 left-0 right-0 z-100 transition-all duration-300 ${
-      scrolled
-        ? "py-3 bg-white/90 dark:bg-[#0a1016]/90 backdrop-blur-xl border-b border-emerald-900/10 dark:border-emerald-500/15 shadow-lg shadow-black/5 dark:shadow-black/30"
-        : "py-5 bg-transparent"
-    }`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-linear-to from-emerald-500 via-teal-500 to-lime-500 p-[2px] shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-            <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-              <Sprout className="w-5 h-5 text-emerald-400 group-hover:rotate-12 transition-transform" />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                AGRI<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-lime-500">NEX</span>
-              </span>
-              <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded text-[8px] font-black tracking-wide bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                PROCURE
-              </span>
-            </div>
-            <p className="hidden sm:block text-[9px] font-medium text-slate-500 dark:text-slate-400">
-              Smart Procurement • Less Waiting
-            </p>
-          </div>
-        </Link>
-
-        <div className="hidden sm:flex items-center gap-2">
-          <button onClick={toggleTheme} aria-label="Toggle theme" className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:text-emerald-500 transition-colors">
-            {mounted && resolvedTheme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <Link href="/signin" className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-emerald-500 transition-colors">
-            Login
-          </Link>
-          <Link href="/signup" className="px-5 py-2.5 rounded-xl bg-linear-to-r from-emerald-600 via-teal-600 to-lime-600 text-white text-xs font-black shadow-lg shadow-emerald-600/20 hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all flex items-center gap-1.5">
-            Get Started <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="flex sm:hidden items-center gap-2">
-          <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-            {mounted && resolvedTheme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="md:hidden mt-3 px-4 pb-5 bg-white/95 dark:bg-[#0c1218]/95 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
-            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2">
-              <Link href="/signin" className="py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-center text-xs font-black">Login</Link>
-              <Link href="/signup" className="py-3 rounded-xl bg-linear-to-r from-emerald-600 to-lime-600 text-white text-center text-xs font-black">Get Started</Link>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </header>
-  );
+const DOC_TYPES = {
+  IDENTITY_PROOF: "Identity Proof",
+  LAND_RECORD: "Land Record",
+  BANK_PROOF: "Bank Proof",
+  OTHER: "Other",
 };
 
-const Hero = () => {
-  const [aheadCount, setAheadCount] = useState(12);
-  const [syncing, setSyncing] = useState(false);
+export default function ProfilePage() {
+  const router = useRouter();
+  const [farmer, setFarmer] = useState(EMPTY_FARMER);
+  const [centres, setCentres] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [toast, setToast] = useState("");
 
-  const syncQueue = () => {
-    setSyncing(true);
-    setTimeout(() => {
-      setAheadCount((value) => (value > 1 ? value - 1 : 12));
-      setSyncing(false);
-    }, 700);
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2500);
   };
 
-  return (
-    <section id="home" className="relative min-h-screen pt-32 pb-20 sm:pt-40 overflow-hidden flex items-center">
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[15%] left-1/2 -translate-x-1/2 w-[700px] sm:w-[1000px] h-[500px] bg-emerald-500/10 dark:bg-emerald-500/10 blur-[140px] rounded-full" />
-        <div className="absolute top-1/3 left-0 w-80 h-80 bg-lime-500/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-500/10 blur-[130px] rounded-full" />
-      </div>
+  const readJson = async (res) => {
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.success === false) throw new Error(data.message || "Something went wrong.");
+    return data;
+  };
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="grid lg:grid-cols-12 gap-14 items-center">
-          <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="lg:col-span-7 text-center lg:text-left">
-            <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-xs font-black uppercase tracking-wide">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 animate-ping opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              Digital Agricultural Procurement Platform
-            </motion.div>
+  const normalizeFarmer = (data = {}) => ({
+    ...EMPTY_FARMER,
+    ...data,
+    avatar: { ...EMPTY_FARMER.avatar, ...(data?.avatar || {}) },
+    farmLocation: { ...EMPTY_FARMER.farmLocation, ...(data?.farmLocation || {}) },
+    farm: { ...EMPTY_FARMER.farm, ...(data?.farm || {}) },
+    verification: { ...EMPTY_FARMER.verification, ...(data?.verification || {}) },
+    notifications: { ...EMPTY_FARMER.notifications, ...(data?.notifications || {}) },
+    documents: data?.documents || [],
+  });
 
-            <motion.h1 variants={fadeInUp} className="mt-6 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.02] text-slate-900 dark:text-white">
-              BOOK YOUR<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-500 to-lime-500 dark:from-emerald-400 dark:via-teal-300 dark:to-lime-400">
-                PROCUREMENT SLOT.
-              </span>
-            </motion.h1>
+  const fetchFarmerProfile = async (showLoader = true) => {
+    try {
+      showLoader ? setLoading(true) : setRefreshing(true);
+      const res = await fetch("/api/farmer/profile", { cache: "no-store", credentials: "include" });
+      const data = await readJson(res);
+      const f = normalizeFarmer(data.farmer);
+      setFarmer(f);
+      setProfileImage(f.avatar?.url || null);
+      return f;
+    } catch (err) {
+      console.error("Farmer profile fetch error:", err);
+      showToast(err.message || "Failed to load profile");
+      return null;
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-            <motion.p variants={fadeInUp} className="mt-6 max-w-2xl mx-auto lg:mx-0 text-sm sm:text-base md:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-              AGRINEX connects farmers with procurement centres through digital slot booking, live queue tracking, transparent procurement status and payment updates.
-            </motion.p>
+  const fetchCentres = async () => {
+    try {
+      const res = await fetch("/api/farmer/centres", { cache: "no-store", credentials: "include" });
+      const data = await readJson(res);
+      setCentres(data.centres || []);
+    } catch (err) {
+      console.error("Procurement centres fetch error:", err);
+    }
+  };
 
-            <motion.div variants={fadeInUp} className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
-              <Link href="/signup" className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-lime-600 text-white text-sm font-black shadow-xl shadow-emerald-600/20 hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
-                Book Procurement Slot <ArrowRight className="w-4 h-4" />
-              </Link>
-              <a href="#how-it-works" className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-sm font-black hover:border-emerald-500/40 transition-all flex items-center justify-center gap-2">
-                <Activity className="w-4 h-4 text-emerald-500" /> See How It Works
-              </a>
-            </motion.div>
+  useEffect(() => {
+    Promise.all([fetchFarmerProfile(true), fetchCentres()]);
+  }, []);
 
-            <motion.div variants={fadeInUp} className="mt-8 flex flex-wrap justify-center lg:justify-start gap-x-5 gap-y-2 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
-              {["Digital Token", "Live Queue", "Transparent Status"].map((t) => (
-                <span key={t} className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> {t}
-                </span>
-              ))}
-            </motion.div>
-          </motion.div>
+  const handleRefresh = async () => {
+    await Promise.all([fetchFarmerProfile(false), fetchCentres()]);
+    showToast("Profile refreshed");
+  };
 
-          <div className="lg:col-span-5">
-            <motion.div initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7 }} className="relative">
-              <div className="absolute -top-5 -right-3 sm:-right-6 z-10">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-emerald-500/20 shadow-xl">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">SYSTEM LIVE</span>
-                </div>
-              </div>
+  const handleImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+      showToast("Only JPG, PNG and WEBP images are allowed");
+      return (e.target.value = "");
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Image must be smaller than 5MB");
+      return (e.target.value = "");
+    }
 
-              <div className="rounded-[28px] p-[1px] bg-gradient-to-br from-emerald-500/50 via-teal-500/20 to-lime-500/50 shadow-2xl shadow-emerald-950/10">
-                <div className="rounded-[27px] bg-white dark:bg-[#0c131a] p-5 sm:p-6">
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                        <Radio className="w-4 h-4 text-emerald-500" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-black">LIVE QUEUE</p>
-                        <p className="text-[9px] text-slate-400">XYZ Procurement Centre</p>
-                      </div>
-                    </div>
-                    <button onClick={syncQueue} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[9px] font-black text-slate-500 hover:text-emerald-500 transition-colors">
-                      <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin text-emerald-500" : ""}`} /> SYNC
-                    </button>
-                  </div>
+    const previewUrl = URL.createObjectURL(file);
+    try {
+      setUploadingAvatar(true);
+      setProfileImage(previewUrl);
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const res = await fetch("/api/farmer/avatar", { method: "POST", body: formData, credentials: "include" });
+      const data = await readJson(res);
+      setFarmer((prev) => ({ ...prev, avatar: data.avatar }));
+      setProfileImage(data.avatar?.url || null);
+      showToast("Profile avatar updated successfully");
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      setProfileImage(farmer.avatar?.url || null);
+      showToast(err.message || "Failed to upload avatar");
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
 
-                  <div className="mt-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-lime-500/5 border border-emerald-500/20 p-5 text-center">
-                    <p className="text-[9px] uppercase tracking-widest font-black text-slate-400">Active Digital Token</p>
-                    <p className="mt-1 text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-500 to-lime-500">#47</p>
-                    <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Paddy • 20 Quintals</p>
-                  </div>
+  const getDocumentStatus = (status) => {
+    if (status === "VERIFIED") return { label: "Verified", className: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20", icon: CheckCircle2 };
+    if (status === "REJECTED") return { label: "Rejected", className: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20", icon: Clock3 };
+    return { label: "Pending", className: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20", icon: Clock3 };
+  };
 
-                  <div className="grid grid-cols-2 gap-3 mt-3">
-                    <DashboardMetric icon={Users} label="Farmers Ahead" value={aheadCount} />
-                    <DashboardMetric icon={Clock} label="Estimated Wait" value="~45 min" amber />
-                  </div>
+  const formatFileSize = (s) => (!s ? "Unknown size" : s < 1024 ? `${s} B` : s < 1048576 ? `${(s / 1024).toFixed(1)} KB` : `${(s / 1048576).toFixed(1)} MB`);
+  const formatDate = (d) => {
+    if (!d || Number.isNaN(new Date(d).getTime())) return "Not available";
+    return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  };
 
-                  <div className="mt-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] uppercase tracking-wider font-black text-slate-400">Procurement Progress</span>
-                      <span className="text-[9px] font-black text-emerald-500">2 / 5</span>
-                    </div>
-                    <div className="mt-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                      <div className="w-2/5 h-full rounded-full bg-gradient-to-r from-emerald-500 to-lime-500" />
-                    </div>
-                    <div className="mt-3 flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      <div>
-                        <p className="text-[10px] font-black">Verification Completed</p>
-                        <p className="text-[9px] text-slate-400">Proceed to weighing bay</p>
-                      </div>
-                    </div>
-                  </div>
+  const getCentreName = () => {
+    const pc = farmer.preferredCentre;
+    if (!pc) return "Not selected";
+    if (typeof pc === "object") return pc.name || pc.title || pc.code || pc.centreCode || pc._id || "Selected Centre";
+    const found = centres.find((c) => String(c._id) === String(pc));
+    return found ? found.name || found.title || found.code || found.centreCode || "Selected Centre" : pc;
+  };
 
-                  <div className="mt-4 flex items-center justify-between text-[9px] text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Token Verified
-                    </span>
-                    <span className="font-mono text-emerald-500">BAY-02</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+  if (loading) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-9 w-9 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+          <p className="text-xs font-bold text-slate-500">Loading farmer profile...</p>
         </div>
       </div>
-    </section>
-  );
-};
-
-const ProblemSection = () => {
-  const problems = [
-    { icon: Clock, title: "Long Waiting", desc: "Farmers spend hours waiting at procurement centres without knowing when their turn will arrive." },
-    { icon: Calendar, title: "Uncertain Scheduling", desc: "Without advance slots, transport planning becomes difficult and valuable time is lost." },
-    { icon: Users, title: "No Queue Visibility", desc: "Farmers have little visibility into the number of vehicles ahead or expected processing time." },
-    { icon: IndianRupee, title: "Payment Uncertainty", desc: "Procurement and payment status can remain unclear after produce is accepted." },
-  ];
+    );
+  }
 
   return (
-    <section className="py-20 bg-slate-100/70 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeading badge="The Procurement Challenge" icon={AlertCircle} title="WHY AGRINEX?" description="Traditional procurement creates uncertainty at every stage of the farmer journey." />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {problems.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <motion.div key={item.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} className="group p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-rose-500/30 shadow-sm transition-all">
-                <div className="w-11 h-11 rounded-2xl bg-rose-500/10 flex items-center justify-center mb-5">
-                  <Icon className="w-5 h-5 text-rose-500" />
-                </div>
-                <h3 className="text-base font-black">{item.title}</h3>
-                <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{item.desc}</p>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-};
+    <div className="h-full w-full overflow-hidden flex flex-col justify-center items-center p-2 sm:p-4 select-none antialiased">
+      {/* MAIN CONTAINER */}
+      <div className="w-full max-w-7xl h-full min-h-[92vh] max-h-[94vh] flex flex-col min-h-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-emerald-950/5 dark:shadow-black/50 overflow-hidden relative">
+        {/* TOP ACCENT LINE */}
+        <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-lime-500 shrink-0" />
 
-const HowItWorks = () => {
-  const steps = [
-    { number: "01", icon: Tractor, title: "Farmer Registration", desc: "Create a verified farmer profile with required agricultural and identity information." },
-    { number: "02", icon: Calendar, title: "Slot Booking", desc: "Choose crop, quantity, procurement centre, vehicle and preferred time slot." },
-    { number: "03", icon: Users, title: "Digital Queue", desc: "Receive a digital token and track the live queue before reaching the centre." },
-    { number: "04", icon: ClipboardCheck, title: "Procurement", desc: "Complete gate verification, weighment and quality checks through the centre workflow." },
-    { number: "05", icon: WalletCards, title: "Payment", desc: "Track procurement approval and payment status from one dashboard." },
-  ];
-
-  return (
-    <section id="how-it-works" className="py-24 relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeading badge="End-to-End Workflow" icon={Activity} title="HOW AGRINEX WORKS" description="One connected workflow from booking your slot to tracking procurement and payment." />
-        <div className="relative">
-          <div className="hidden lg:block absolute top-10 left-[10%] right-[10%] h-px bg-gradient-to-r from-emerald-500/10 via-emerald-500/50 to-lime-500/10" />
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-5">
-            {steps.map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <motion.div key={step.number} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} className="relative">
-                  <div className="relative z-10 w-20 h-20 mx-auto rounded-3xl bg-white dark:bg-slate-900 border border-emerald-500/30 shadow-lg flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                      <Icon className="w-6 h-6 text-emerald-500" />
-                    </div>
-                  </div>
-                  <div className="mt-5 text-center">
-                    <span className="text-[9px] uppercase tracking-widest font-black text-emerald-500">Step {step.number}</span>
-                    <h3 className="mt-1 text-sm font-black">{step.title}</h3>
-                    <p className="mt-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">{step.desc}</p>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const CoreFeatures = () => {
-  const features = [
-    { icon: Calendar, title: "Smart Slot Booking", desc: "Reserve an available procurement window based on centre capacity and operating schedule." },
-    { icon: Users, title: "Live Queue Tracking", desc: "Know your digital token position and estimated waiting time before arriving." },
-    { icon: Building2, title: "Centre Management", desc: "View centre availability, queue load, operating status and procurement capacity." },
-    { icon: Scale, title: "Procurement Tracking", desc: "Follow your produce through verification, weighment, quality check and acceptance." },
-    { icon: IndianRupee, title: "Payment Tracking", desc: "Monitor approved procurement value and payment status from the farmer dashboard." },
-    { icon: Bell, title: "Real-Time Alerts", desc: "Receive important booking, queue, procurement and payment notifications." },
-  ];
-
-  return (
-    <section id="features" className="py-24 bg-slate-100/70 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeading badge="Platform Capabilities" icon={Sparkles} title="CORE FEATURES" description="Every feature is designed around the actual procurement journey." />
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <motion.div key={feature.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.07 }} className="group p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/40 shadow-sm hover:shadow-xl hover:shadow-emerald-950/5 transition-all">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <Icon className="w-6 h-6 text-emerald-500" />
-                </div>
-                <h3 className="mt-5 text-base sm:text-lg font-black">{feature.title}</h3>
-                <p className="mt-2 text-xs sm:text-sm leading-relaxed text-slate-500 dark:text-slate-400">{feature.desc}</p>
-                <div className="mt-5 flex items-center gap-1 text-[10px] font-black text-emerald-500 uppercase tracking-wide">
-                  Explore Feature <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const TechnologySection = () => {
-  const technologies = [
-    { icon: Smartphone, title: "Farmer Interface", desc: "Responsive web interface for slot booking, queue tracking, procurement and payments.", tag: "Next.js" },
-    { icon: Database, title: "Procurement Data", desc: "Structured storage for farmer profiles, bookings, tokens, procurement records and payments.", tag: "Database" },
-    { icon: Cloud, title: "API Layer", desc: "Secure backend APIs connect farmer actions with procurement centre operations.", tag: "REST API" },
-    { icon: Activity, title: "Real-Time Queue", desc: "Queue and centre status can be updated dynamically as procurement operations progress.", tag: "Real-Time" },
-    { icon: ShieldCheck, title: "Verification", desc: "Role-based access and verified farmer information support controlled procurement workflows.", tag: "RBAC" },
-    { icon: BarChart3, title: "Analytics", desc: "Centre-level data can be transformed into queue, procurement and operational insights.", tag: "Analytics" },
-  ];
-
-  return (
-    <section className="py-24 relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-emerald-500/5 blur-[120px] rounded-full" />
-      </div>
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeading badge="Technology Layer" icon={Cpu} title="BUILT FOR DIGITAL PROCUREMENT" description="The prototype combines a modern web interface, structured procurement data and real-time operational workflows." />
-        <div className="max-w-5xl mx-auto mb-12">
-          <div className="rounded-3xl bg-slate-950 dark:bg-[#060a0f] border border-emerald-500/20 p-5 sm:p-8 shadow-2xl">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-              <ArchitectureBlock icon={Smartphone} title="Farmer App" subtitle="Book • Track • Receive" />
-              <div className="hidden md:flex items-center justify-center">
-                <ArrowRight className="w-6 h-6 text-emerald-500" />
-              </div>
-              <ArchitectureBlock icon={Cloud} title="API / Services" subtitle="Validate • Process • Sync" />
-              <div className="hidden md:flex items-center justify-center">
-                <ArrowRight className="w-6 h-6 text-emerald-500" />
-              </div>
-              <ArchitectureBlock icon={Database} title="Procurement Data" subtitle="Farmers • Slots • Tokens" />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {technologies.map((tech) => {
-            const Icon = tech.icon;
-            return (
-              <div key={tech.title} className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-emerald-500" />
-                  </div>
-                  <span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[9px] font-black text-slate-500 dark:text-slate-400">{tech.tag}</span>
-                </div>
-                <h3 className="mt-5 text-sm font-black">{tech.title}</h3>
-                <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{tech.desc}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const QueueSection = () => {
-  return (
-    <section className="py-24 bg-slate-100/70 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-800">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-wider">
-              <Radio className="w-3.5 h-3.5" /> Real-Time Queue Intelligence
-            </div>
-            <h2 className="mt-4 text-3xl sm:text-4xl font-black tracking-tight">
-              KNOW YOUR QUEUE<br />
-              <span className="text-emerald-500">BEFORE YOU ARRIVE.</span>
-            </h2>
-            <p className="mt-4 text-sm leading-relaxed text-slate-500 dark:text-slate-400 max-w-lg">
-              AGRINEX turns the traditional waiting line into a digital queue. Farmers can check their token, current position and estimated waiting time from their phone.
-            </p>
-            <div className="mt-7 space-y-3">
-              {["Digital token generated after booking", "Live number of farmers ahead", "Estimated waiting time", "Centre and bay status"].map((t) => (
-                <FeatureCheck key={t} text={t} />
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-center">
-            <div className="w-full max-w-sm rounded-[32px] bg-slate-950 p-3 shadow-2xl">
-              <div className="rounded-[26px] bg-white dark:bg-[#0c131a] overflow-hidden p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[9px] text-slate-400">AGRINEX</p>
-                    <p className="text-sm font-black">My Queue</p>
-                  </div>
-                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                    <Users className="w-4 h-4 text-emerald-500" />
-                  </div>
-                </div>
-
-                <div className="mt-6 rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-700 p-6 text-white text-center">
-                  <p className="text-[9px] uppercase tracking-widest font-black text-white/60">Your Token</p>
-                  <p className="mt-1 text-5xl font-black">#47</p>
-                  <p className="text-[10px] text-white/70">XYZ Procurement Centre</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-800">
-                    <p className="text-[9px] text-slate-400">AHEAD</p>
-                    <p className="mt-1 text-xl font-black">12</p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-800">
-                    <p className="text-[9px] text-slate-400">WAIT</p>
-                    <p className="mt-1 text-xl font-black text-amber-500">45m</p>
-                  </div>
-                </div>
-
-                <div className="mt-3 p-3 rounded-2xl bg-emerald-500/10 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">You're in the active queue</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const CentresSection = () => {
-  const centres = [
-    { name: "XYZ Mandi", location: "Kamrup", queue: "42", wait: "48 min", capacity: "72%", status: "Moderate" },
-    { name: "ABC Procurement Centre", location: "Guwahati", queue: "18", wait: "20 min", capacity: "45%", status: "Fast" },
-    { name: "DEF Mandi", location: "Nalbari", queue: "76", wait: "90 min", capacity: "88%", status: "Busy" },
-  ];
-
-  return (
-    <section id="centres" className="py-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeading badge="Procurement Network" icon={Building2} title="FIND A PROCUREMENT CENTRE" description="Compare centre status and queue conditions before planning your visit." />
-        <div className="grid md:grid-cols-3 gap-5">
-          {centres.map((centre) => (
-            <div key={centre.name} className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-emerald-500/30 transition-all">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-emerald-500" />
-                    <h3 className="text-base font-black">{centre.name}</h3>
-                  </div>
-                  <p className="mt-1 text-[10px] text-slate-400">{centre.location}</p>
-                </div>
-                <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-black">{centre.status}</span>
-              </div>
-              <div className="mt-5 space-y-2">
-                <CentreMetric label="Vehicles in Queue" value={centre.queue} />
-                <CentreMetric label="Estimated Wait" value={centre.wait} amber />
-                <CentreMetric label="Centre Capacity" value={centre.capacity} />
-              </div>
-              <Link href="/signup" className="mt-5 w-full py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/10 hover:text-emerald-500 text-xs font-black flex items-center justify-center gap-1 transition-colors">
-                View Centre & Book <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const ProcurementTracking = () => {
-  const stages = [
-    { title: "Booking", status: "Completed" },
-    { title: "Verification", status: "Completed" },
-    { title: "Weighing", status: "In Progress" },
-    { title: "Quality Check", status: "Pending" },
-    { title: "Procurement", status: "Pending" },
-    { title: "Payment", status: "Pending" },
-  ];
-
-  return (
-    <section id="track" className="py-24 bg-slate-100/70 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-800">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeading badge="Procurement Transparency" icon={Scale} title="TRACK EVERY STAGE" description="Know exactly where your produce stands from arrival to payment." />
-        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-8 shadow-xl">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {stages.map((stage) => {
-              const completed = stage.status === "Completed";
-              const active = stage.status === "In Progress";
-              return (
-                <div key={stage.title} className={`p-4 rounded-2xl border text-center ${
-                  completed ? "bg-emerald-500/10 border-emerald-500/20" : active ? "bg-amber-500/10 border-amber-500/30" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800"
-                }`}>
-                  <div className={`mx-auto w-9 h-9 rounded-full flex items-center justify-center ${
-                    completed ? "bg-emerald-500 text-white" : active ? "bg-amber-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-400"
-                  }`}>
-                    {completed ? <Check className="w-4 h-4" /> : active ? <Activity className="w-4 h-4" /> : <span className="text-xs">○</span>}
-                  </div>
-                  <p className="mt-3 text-[10px] font-black">{stage.title}</p>
-                  <p className={`mt-1 text-[9px] ${completed ? "text-emerald-500" : active ? "text-amber-500" : "text-slate-400"}`}>{stage.status}</p>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between gap-3 text-[10px] text-slate-400">
-            <span className="font-mono">Lot ID: LOT-AGR-9281</span>
-            <span className="flex items-center gap-1 text-emerald-500 font-bold">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Verification completed
-            </span>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const AlertsSection = () => {
-  return (
-    <section className="py-24">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-950 p-7 sm:p-10 text-white shadow-2xl">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
+        <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-6 lg:p-7 overflow-hidden">
+          {/* HEADER BAR */}
+          <header className="shrink-0 pb-4 border-b border-slate-200/80 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-wider">
-                <Bell className="w-3.5 h-3.5" /> Smart Notifications
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-wider mb-1.5 border border-emerald-500/20">
+                <Sparkles className="w-3 h-3 text-emerald-500" />
+                <span>Verified Agricultural Profile</span>
               </div>
-              <h2 className="mt-4 text-3xl sm:text-4xl font-black">NEVER MISS YOUR TURN.</h2>
-              <p className="mt-3 text-sm text-white/70 leading-relaxed">
-                AGRINEX can keep farmers informed about booking confirmations, queue movement, gate entry, procurement updates and payment status.
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                Farmer Profile
+              </h1>
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Verified identification, farm registry, and linked MSP documentation.
               </p>
             </div>
-            <div className="space-y-3">
-              <NotificationCard icon={Calendar} title="Slot Confirmed" text="Your procurement slot is confirmed for 10:30 AM." />
-              <NotificationCard icon={Users} title="Queue Alert" text="Only 3 farmers are ahead of your token." />
-              <NotificationCard icon={IndianRupee} title="Payment Update" text="Your procurement payment has been processed." />
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
 
-const FAQ = () => {
-  const [open, setOpen] = useState(0);
-  const questions = [
-    { q: "How do I book a procurement slot?", a: "Create or access your farmer account, select the crop and estimated quantity, choose a procurement centre and select an available date and time slot." },
-    { q: "Can I see the live queue?", a: "Yes. AGRINEX provides a digital token and queue information so farmers can see their approximate position and estimated waiting time." },
-    { q: "What can I track after procurement?", a: "You can track verification, weighing, quality checking, procurement approval and payment status from the dashboard." },
-    { q: "Can procurement centres manage their queues?", a: "Yes. The platform is designed to support centre-side slot capacity, queue and procurement workflow management." },
-  ];
-
-  return (
-    <section id="faq" className="py-24 bg-slate-100/70 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-800">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeading badge="Help Centre" icon={HelpCircle} title="FREQUENTLY ASKED QUESTIONS" description="Quick answers about the AGRINEX procurement workflow." />
-        <div className="space-y-3">
-          {questions.map((item, index) => {
-            const active = open === index;
-            return (
-              <div key={item.q} className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <button onClick={() => setOpen(active ? -1 : index)} className="w-full px-5 sm:px-6 py-4 flex items-center justify-between gap-4 text-left">
-                  <span className="text-xs sm:text-sm font-black">{item.q}</span>
-                  <ChevronRight className={`w-4 h-4 shrink-0 text-emerald-500 transition-transform ${active ? "rotate-90" : ""}`} />
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {!farmer.onboardingCompleted && (
+                <button
+                  type="button"
+                  onClick={() => router.push("/onboarding")}
+                  className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-lime-600 hover:from-emerald-500 hover:to-lime-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition active:scale-95"
+                >
+                  <Sprout className="w-3.5 h-3.5" />
+                  <span>Complete Onboarding</span>
+                  <ArrowRight className="w-3 h-3" />
                 </button>
-                <AnimatePresence>
-                  {active && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="px-5 sm:px-6 pb-5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                      {item.a}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-};
+              )}
 
-const FinalCTA = () => {
-  return (
-    <section id="book" className="py-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-emerald-700 via-teal-800 to-slate-950 p-8 sm:p-14 text-center text-white shadow-2xl">
-          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-emerald-400/20 blur-[100px]" />
-          <div className="relative max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-wider">
-              <Sprout className="w-3.5 h-3.5" /> Smarter Procurement Starts Here
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="h-9 px-3.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white/90 dark:bg-slate-800/80 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition shadow-sm disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-emerald-500" : ""}`} />
+                <span>Refresh</span>
+              </button>
             </div>
-            <h2 className="mt-5 text-3xl sm:text-4xl md:text-5xl font-black tracking-tight">YOUR PROCUREMENT.<br />YOUR TIME.</h2>
-            <p className="mt-4 text-sm sm:text-base text-white/70 max-w-xl mx-auto leading-relaxed">
-              Book your procurement slot, track your queue and stay informed throughout the procurement process with AGRINEX.
-            </p>
-            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
-              <Link href="/signup" className="px-7 py-3.5 rounded-2xl bg-white text-slate-900 text-sm font-black hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2">
-                Create Farmer Account <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link href="/signin" className="px-7 py-3.5 rounded-2xl bg-white/10 border border-white/20 text-white text-sm font-black hover:bg-white/15 transition-colors">
-                Login
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
+          </header>
 
-const Footer = () => {
-  const columns = [
-    { title: "Platform", links: [["Home", "#home"], ["Features", "#features"], ["How It Works", "#how-it-works"], ["Centres", "#centres"], ["Track Procurement", "#track"]] },
-    { title: "Farmers", links: [["Book Slot", "/signup"], ["Live Queue", "#track"], ["Procurement", "#track"], ["Payment Status", "#track"], ["Notifications", "#notifications"]] },
-    { title: "Centre Operations", links: [["Queue Management", "#features"], ["Slot Management", "#features"], ["Procurement Workflow", "#track"], ["Centre Status", "#centres"], ["Analytics", "#technology"]] },
-    { title: "Support", links: [["FAQs", "#faq"], ["Help Centre", "#faq"], ["Contact Support", "mailto:support@agrinex.in"], ["Privacy Policy", "#privacy"], ["Terms & Conditions", "#terms"]] },
-  ];
+          {/* INNER SCROLLABLE CONTENT */}
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 pt-4 space-y-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 hover:scrollbar-thumb-emerald-500">
+            {/* HERO PROFILE SUMMARY CARD */}
+            <div className="p-4 sm:p-6 rounded-2xl bg-white/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-white/5 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+                {/* AVATAR WITH CAMERA UPLOAD */}
+                <div className="relative shrink-0 mx-auto sm:mx-0">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-500 to-lime-500 p-[2px] shadow-md shadow-emerald-600/20">
+                    <div className="w-full h-full rounded-[14px] bg-slate-900 dark:bg-[#0b1015] flex items-center justify-center overflow-hidden">
+                      {profileImage ? (
+                        <img src={profileImage} alt="Farmer avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-12 h-12 text-slate-500" />
+                      )}
+                    </div>
+                  </div>
 
-  return (
-    <footer id="footer" className="bg-white dark:bg-[#080d12] border-t border-slate-200 dark:border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-14 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10">
-          <div className="col-span-2 md:col-span-3 lg:col-span-1">
-            <Link href="/" className="inline-flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-lime-500 p-[2px]">
-                <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                  <Sprout className="w-5 h-5 text-emerald-400" />
+                  <label
+                    htmlFor="avatar-upload"
+                    className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-white shadow-lg cursor-pointer transition-all active:scale-95 ${
+                      uploadingAvatar ? "opacity-60 pointer-events-none" : ""
+                    }`}
+                    title="Change Avatar"
+                  >
+                    {uploadingAvatar ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                  </label>
+                  <input id="avatar-upload" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageChange} className="hidden" />
+                </div>
+
+                {/* ESSENTIAL IDENTIFICATION DETAILS */}
+                <div className="flex-1 text-center sm:text-left">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                      {farmer.name || "Farmer"}
+                    </h2>
+                    {farmer.verification?.isVerified && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black tracking-wider uppercase">
+                        <BadgeCheck className="w-3.5 h-3.5" />
+                        Verified Account
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap justify-center sm:justify-start items-center gap-3 mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[9px] font-black uppercase text-slate-500 dark:text-slate-400">
+                      {farmer.role || "FARMER"}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                      {farmer.mobile ? `+91 ${farmer.mobile}` : "Mobile not set"}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+                      {farmer.farmLocation?.village || "Village not specified"}
+                      {farmer.farmLocation?.district ? `, ${farmer.farmLocation.district}` : ""}
+                    </span>
+                  </div>
+
+                  {/* QUICK STATS STRIP */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 pt-3.5 border-t border-slate-100 dark:border-white/5 text-left">
+                    <QuickMetric label="Land Holding" value={farmer.farm?.landArea != null ? `${farmer.farm.landArea} ${farmer.farm.landUnit || "Acre"}` : "—"} icon={Ruler} />
+                    <QuickMetric label="Main Crop" value={farmer.farm?.mainCrop || "—"} icon={Sprout} />
+                    <QuickMetric label="Centre" value={getCentreName()} icon={Building2} />
+                    <QuickMetric label="Documents" value={`${farmer.documents?.length || 0} Registered`} icon={FileText} />
+                  </div>
                 </div>
               </div>
-              <span className="text-xl font-black">AGRI<span className="text-emerald-500">NEX</span></span>
-            </Link>
-            <p className="mt-4 text-xs leading-relaxed text-slate-500 dark:text-slate-400 max-w-xs">
-              Digital procurement management for farmers and procurement centres — designed to reduce waiting and improve transparency.
-            </p>
-            <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[9px] font-black text-emerald-500">PROCUREMENT NETWORK ACTIVE</span>
+            </div>
+
+            {/* TWO-COLUMN DETAILS GRID */}
+            <div className="grid lg:grid-cols-2 gap-3.5">
+              <ProfileSection icon={User} title="Personal Details" desc="Authentication & account identity">
+                <InfoItem label="Full Name" value={farmer.name} />
+                <InfoItem label="Mobile Number" value={farmer.mobile ? `+91 ${farmer.mobile}` : "—"} icon={Phone} />
+                <InfoItem label="Email Address" value={farmer.email || "Not registered"} icon={Mail} />
+                <InfoItem label="Account Status" value={farmer.isActive ? "Active Verified Session" : "Inactive"} green={farmer.isActive} />
+                <InfoItem label="Preferred Language" value={LANGUAGES[farmer.preferredLanguage] || farmer.preferredLanguage} icon={Globe2} />
+              </ProfileSection>
+
+              <ProfileSection icon={MapPin} title="Farm Location" desc="Registered revenue location & address">
+                <InfoItem label="Village" value={farmer.farmLocation?.village} />
+                <InfoItem label="District" value={farmer.farmLocation?.district} />
+                <InfoItem label="State" value={farmer.farmLocation?.state} />
+                <InfoItem label="Pincode" value={farmer.farmLocation?.pincode} />
+              </ProfileSection>
+
+              <ProfileSection icon={Sprout} title="Agriculture & Mandi Allocation" desc="Land metrics and procurement tie-up">
+                <InfoItem label="Land Area" value={farmer.farm?.landArea != null ? `${farmer.farm.landArea} ${farmer.farm.landUnit || "Acre"}` : "—"} icon={Ruler} />
+                <InfoItem label="Main Crop" value={farmer.farm?.mainCrop} icon={Sprout} />
+                <InfoItem label="Allocated Procurement Centre" value={getCentreName()} icon={Building2} />
+                {farmer.officerCentre && (
+                  <InfoItem label="Assigned Officer Centre" value={typeof farmer.officerCentre === "object" ? farmer.officerCentre?.name || farmer.officerCentre?._id : farmer.officerCentre} icon={Building2} />
+                )}
+              </ProfileSection>
+
+              <ProfileSection icon={ShieldCheck} title="Verification & Security Audit" desc="Official APMC validation record">
+                <VerificationItem label="Identity Verification" value={farmer.verification?.isVerified ? "Officer Approved" : "Pending Verification"} verified={farmer.verification?.isVerified} />
+                <VerificationItem label="Mobile Phone Check" value={farmer.verification?.isPhoneVerified ? "SMS Verified" : "Unverified"} verified={farmer.verification?.isPhoneVerified} />
+                <InfoItem label="Verified On" value={formatDate(farmer.verification?.verifiedAt)} icon={CalendarDays} />
+                <InfoItem label="Last Portal Access" value={formatDate(farmer.lastLogin)} icon={Clock3} />
+              </ProfileSection>
+            </div>
+
+            {/* REGISTERED DOCUMENTS SECTION */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-white/5 shadow-sm">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5 mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                      Registered Documents ({farmer.documents?.length || 0})
+                    </h3>
+                    <p className="text-[10px] text-slate-400">Official identity, land record and bank certificates on file</p>
+                  </div>
+                </div>
+              </div>
+
+              {farmer.documents?.length > 0 ? (
+                <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-2.5">
+                  {farmer.documents.map((doc) => {
+                    const statusInfo = getDocumentStatus(doc.status);
+                    const StatusIcon = statusInfo.icon;
+                    return (
+                      <div key={doc._id} className="p-3 rounded-xl border border-slate-200/80 dark:border-white/5 bg-slate-50/70 dark:bg-slate-800/40 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="text-xs font-black text-slate-900 dark:text-white truncate">{doc.name}</span>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider ${statusInfo.className}`}>
+                              <StatusIcon className="w-2.5 h-2.5" />
+                              {statusInfo.label}
+                            </span>
+                          </div>
+                          <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                            {DOC_TYPES[doc.type] || doc.type}
+                          </p>
+                          <div className="flex items-center justify-between text-[9px] text-slate-400 mt-2">
+                            <span>Size: {formatFileSize(doc.size)}</span>
+                            <span>{formatDate(doc.uploadedAt)}</span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDocument(doc)}
+                          className="mt-3 w-full h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-emerald-500" />
+                          View Document
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-8 flex flex-col items-center justify-center text-center">
+                  <FileText className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                  <p className="text-xs font-bold text-slate-500">No documents on file.</p>
+                </div>
+              )}
+            </div>
+
+            {/* NOTIFICATION CHANNELS (READ-ONLY) */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-white/5 shadow-sm">
+              <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 dark:border-white/5 mb-3">
+                <Bell className="w-4 h-4 text-emerald-500" />
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                  Active Dispatch Channels
+                </h3>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-2">
+                <ChannelBadge icon={Smartphone} label="SMS Notifications" active={farmer.notifications?.sms} />
+                <ChannelBadge icon={MessageCircle} label="WhatsApp Alerts" active={farmer.notifications?.whatsapp} />
+                <ChannelBadge icon={Bell} label="Push Notifications" active={farmer.notifications?.push} />
+              </div>
             </div>
           </div>
 
-          {columns.map((column) => (
-            <div key={column.title}>
-              <h3 className="text-xs font-black uppercase tracking-wider">{column.title}</h3>
-              <ul className="mt-5 space-y-3">
-                {column.links.map(([name, href]) => (
-                  <li key={name}>
-                    <Link href={href} className="text-xs text-slate-500 dark:text-slate-400 hover:text-emerald-500 transition-colors">
-                      {name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        <div className="py-5 border-y border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex flex-wrap justify-center sm:justify-start gap-4 text-[10px] text-slate-500 dark:text-slate-400">
-            {[
-              { icon: ShieldCheck, text: "Secure Access" },
-              { icon: Database, text: "Structured Data" },
-              { icon: Activity, text: "Real-Time Workflow" },
-            ].map(({ icon: Icon, text }) => (
-              <span key={text} className="flex items-center gap-1.5">
-                <Icon className="w-3.5 h-3.5 text-emerald-500" /> {text}
+          {/* FOOTER AUDIT STRIP */}
+          <footer className="shrink-0 pt-3 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                Official Farmer Registry Data • State APMC Records
               </span>
-            ))}
-          </div>
-          <div className="text-[10px] text-slate-400">Smart Procurement • Less Waiting</div>
-        </div>
-
-        <div className="py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-[10px] text-slate-500 text-center sm:text-left">© 2026 AGRINEX • SIH 2026 Prototype</p>
-          <div className="flex items-center gap-4 text-[10px] text-slate-500">
-            {["#privacy|Privacy", "#terms|Terms", "#faq|Help"].map((item) => {
-              const [href, label] = item.split("|");
-              return (
-                <React.Fragment key={label}>
-                  <a href={href} className="hover:text-emerald-500">{label}</a>
-                  {label !== "Help" && <span>•</span>}
-                </React.Fragment>
-              );
-            })}
-          </div>
+            </div>
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+              Read-Only Verified Profile
+            </span>
+          </footer>
         </div>
       </div>
-    </footer>
-  );
-};
 
-function SectionHeading({ badge, icon: Icon, title, description }) {
-  return (
-    <div className="text-center max-w-3xl mx-auto mb-14">
-      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider">
-        <Icon className="w-3.5 h-3.5" /> {badge}
-      </div>
-      <h2 className="mt-4 text-3xl sm:text-4xl md:text-5xl font-black tracking-tight">{title}</h2>
-      <p className="mt-3 text-sm sm:text-base text-slate-500 dark:text-slate-400 leading-relaxed">{description}</p>
-    </div>
-  );
-}
+      {/* DOCUMENT PREVIEW MODAL */}
+      {selectedDocument && (
+        <DocumentViewer
+          document={selectedDocument}
+          statusInfo={getDocumentStatus(selectedDocument.status)}
+          fileSize={formatFileSize(selectedDocument.size)}
+          formattedDate={formatDate(selectedDocument.uploadedAt)}
+          onClose={() => setSelectedDocument(null)}
+        />
+      )}
 
-function DashboardMetric({ icon: Icon, label, value, amber = false }) {
-  return (
-    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-center">
-      <div className="flex items-center justify-center gap-1.5 text-[9px] uppercase tracking-wider font-black text-slate-400">
-        <Icon className={`w-3.5 h-3.5 ${amber ? "text-amber-500" : "text-emerald-500"}`} /> {label}
-      </div>
-      <p className={`mt-1 text-xl font-black ${amber ? "text-amber-500" : ""}`}>{value}</p>
-    </div>
-  );
-}
-
-function FeatureCheck({ text }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-        <Check className="w-3 h-3 text-emerald-500" />
-      </div>
-      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{text}</span>
-    </div>
-  );
-}
-
-function ArchitectureBlock({ icon: Icon, title, subtitle }) {
-  return (
-    <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-          <Icon className="w-5 h-5 text-emerald-400" />
+      {/* TOAST NOTIFICATION */}
+      {toast && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[500] px-4 py-2.5 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xl text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+          {toast}
         </div>
-        <div>
-          <p className="text-xs font-black text-white">{title}</p>
-          <p className="text-[9px] text-slate-500 mt-1">{subtitle}</p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function CentreMetric({ label, value, amber = false }) {
+function ProfileSection({ icon: Icon, title, desc, children }) {
   return (
-    <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-      <span className="text-[9px] text-slate-400">{label}</span>
-      <span className={`text-xs font-black ${amber ? "text-amber-500" : ""}`}>{value}</span>
-    </div>
-  );
-}
-
-function NotificationCard({ icon: Icon, title, text }) {
-  return (
-    <div className="p-4 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm flex items-start gap-3">
-      <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-        <Icon className="w-4 h-4" />
-      </div>
+    <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-white/5 shadow-sm flex flex-col justify-between">
       <div>
-        <p className="text-xs font-black">{title}</p>
-        <p className="mt-1 text-[10px] leading-relaxed text-white/60">{text}</p>
+        <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 dark:border-white/5 mb-2.5">
+          <Icon className="w-4 h-4 text-emerald-500" />
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">{title}</h3>
+            <p className="text-[9px] text-slate-400">{desc}</p>
+          </div>
+        </div>
+        <div className="space-y-1.5">{children}</div>
       </div>
     </div>
   );
 }
 
-export default function App() {
+function InfoItem({ label, value, icon: Icon, green = false }) {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#090e14] text-slate-900 dark:text-slate-100 transition-colors duration-300 font-sans">
-      <Navbar />
-      <main>
-        <Hero />
-        <ProblemSection />
-        <HowItWorks />
-        <CoreFeatures />
-        <TechnologySection />
-        <QueueSection />
-        <CentresSection />
-        <ProcurementTracking />
-        <AlertsSection />
-        <FAQ />
-        <FinalCTA />
-      </main>
-      <Footer />
+    <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5">
+      <div className="flex items-center gap-2 min-w-0">
+        {Icon && <Icon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{label}</span>
+      </div>
+      <span className={`text-xs font-bold text-right truncate max-w-[65%] ${green ? "text-emerald-500 font-black" : "text-slate-800 dark:text-slate-200"}`}>
+        {value || "—"}
+      </span>
+    </div>
+  );
+}
+
+function VerificationItem({ label, value, verified }) {
+  return (
+    <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5">
+      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{label}</span>
+      <span className={`inline-flex items-center gap-1 text-[10px] font-black ${verified ? "text-emerald-500" : "text-amber-500"}`}>
+        {verified ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock3 className="w-3.5 h-3.5" />}
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function QuickMetric({ label, value, icon: Icon }) {
+  return (
+    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/5">
+      <div className="flex items-center gap-1.5 text-slate-400">
+        <Icon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+        <span className="text-[8px] uppercase tracking-wider font-bold truncate">{label}</span>
+      </div>
+      <p className="mt-1 text-xs font-black text-slate-800 dark:text-slate-200 truncate">{value}</p>
+    </div>
+  );
+}
+
+function ChannelBadge({ icon: Icon, label, active }) {
+  return (
+    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5">
+      <div className="flex items-center gap-2">
+        <Icon className="w-3.5 h-3.5 text-emerald-500" />
+        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{label}</span>
+      </div>
+      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${active ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-slate-200 dark:bg-slate-700 text-slate-400"}`}>
+        {active ? "Active" : "Off"}
+      </span>
+    </div>
+  );
+}
+
+function DocumentViewer({ document: doc, statusInfo, fileSize, formattedDate, onClose }) {
+  const isImage = doc.mimeType?.startsWith("image/");
+  const isPdf = doc.mimeType === "application/pdf";
+
+  return (
+    <div className="fixed inset-0 z-[600] bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden">
+        <div className="p-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+              <FileText className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-xs font-black text-slate-900 dark:text-white truncate">{doc.name}</h2>
+              <p className="text-[10px] text-slate-400">{DOC_TYPES[doc.type] || doc.type}</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="h-8 w-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto bg-slate-100 dark:bg-slate-950 p-4 flex items-center justify-center min-h-[320px]">
+          {isImage ? (
+            <img src={doc.url} alt={doc.name} className="max-w-full max-h-[60vh] object-contain rounded-xl shadow-lg" />
+          ) : isPdf ? (
+            <iframe src={doc.url} title={doc.name} className="w-full h-[60vh] rounded-xl bg-white" />
+          ) : (
+            <div className="text-center p-6">
+              <FileText className="w-12 h-12 text-slate-400 mx-auto mb-2" />
+              <p className="text-xs font-black text-slate-700 dark:text-slate-300">Preview not supported</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Please download the file to inspect its content.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="p-3.5 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-slate-800/40 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 text-[10px] text-slate-400">
+            <span>Size: <strong className="text-slate-700 dark:text-slate-200">{fileSize}</strong></span>
+            <span>Uploaded: <strong className="text-slate-700 dark:text-slate-200">{formattedDate}</strong></span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onClose} className="h-8 px-3 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200">
+              Close
+            </button>
+            <a href={doc.url} target="_blank" rel="noopener noreferrer" className="h-8 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm">
+              <Download className="w-3.5 h-3.5" /> Download
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

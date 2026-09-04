@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const notificationSchema = new mongoose.Schema(
   {
-    farmerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    farmerId: { type: mongoose.Schema.Types.ObjectId, ref: "Farmer", required: true, index: true },
     title: { type: String, required: true, trim: true },
     message: { type: String, required: true, trim: true },
     type: {

@@ -4,7 +4,7 @@ const paymentSchema = new mongoose.Schema(
   {
     paymentId: { type: String, required: true, unique: true, trim: true },
     procurementId: { type: mongoose.Schema.Types.ObjectId, ref: "Procurement", required: true, unique: true },
-    farmerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    farmerId: { type: mongoose.Schema.Types.ObjectId, ref: "Farmer", required: true },
     amount: { type: Number, required: true, min: 0 },
     paymentMethod: {
       type: String,

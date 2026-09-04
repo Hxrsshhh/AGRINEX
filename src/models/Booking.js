@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const bookingSchema = new mongoose.Schema(
   {
     bookingId: { type: String, required: true, unique: true, trim: true },
-    farmerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    farmerId: { type: mongoose.Schema.Types.ObjectId, ref: "Farmer", required: true, index: true },
     centreId: { type: mongoose.Schema.Types.ObjectId, ref: "ProcurementCentre", required: true, index: true },
     slotId: { type: mongoose.Schema.Types.ObjectId, ref: "Slot", required: true, index: true },
     commodityId: { type: mongoose.Schema.Types.ObjectId, ref: "Commodity", required: true },

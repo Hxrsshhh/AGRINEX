@@ -15,8 +15,8 @@ const slotSchema = new mongoose.Schema(
       default: "AVAILABLE",
     },
     isActive: { type: Boolean, default: true },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "Officer", default: null },
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Officer", default: null },
   },
   { timestamps: true }
 );

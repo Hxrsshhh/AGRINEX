@@ -4,7 +4,7 @@ const procurementSchema = new mongoose.Schema(
   {
     procurementId: { type: String, required: true, unique: true, trim: true },
     bookingId: { type: mongoose.Schema.Types.ObjectId, ref: "Booking", required: true, unique: true },
-    farmerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    farmerId: { type: mongoose.Schema.Types.ObjectId, ref: "Farmer", required: true },
     centreId: { type: mongoose.Schema.Types.ObjectId, ref: "ProcurementCentre", required: true },
     commodityId: { type: mongoose.Schema.Types.ObjectId, ref: "Commodity", required: true },
     expectedQuantity: { type: Number, required: true, min: 0 },
@@ -23,7 +23,7 @@ const procurementSchema = new mongoose.Schema(
     remarks: { type: String, trim: true, default: null },
     ratePerUnit: { type: Number, required: true, min: 0 },
     totalAmount: { type: Number, required: true, min: 0 },
-    processedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    processedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Officer", default: null },
   },
   { timestamps: true }
 );

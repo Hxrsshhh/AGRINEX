@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const queueSchema = new mongoose.Schema(
   {
     bookingId: { type: mongoose.Schema.Types.ObjectId, ref: "Booking", required: true },
-    farmerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    farmerId: { type: mongoose.Schema.Types.ObjectId, ref: "Farmer", required: true },
     centreId: { type: mongoose.Schema.Types.ObjectId, ref: "ProcurementCentre", required: true },
     tokenNumber: { type: String, required: true, trim: true },
     queueDate: { type: Date, required: true },

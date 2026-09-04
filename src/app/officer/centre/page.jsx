@@ -19,7 +19,7 @@ const fmtTime = (t) => {
 
 const STATUS_MAP = {
   ACTIVE: { label: "OPEN", desc: "Centre is operating normally", icon: CheckCircle2, cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", dot: "bg-emerald-500" },
-  INACTIVE: { label: "CLOSED", desc: "Centre is currently closed", icon: XCircle, cls: "bg-slate-500/10 text-slate-600 border-slate-500/20", dot: "bg-slate-500" },
+  INACTIVE: { label: "CLOSED", desc: "Centre is currently closed", icon: XCircle, cls: "bg-rose-500/10 text-rose-600 border-rose-500/20", dot: "bg-rose-500" },
   TEMPORARILY_CLOSED: { label: "TEMP CLOSED", desc: "Temporarily closed for safety/weather", icon: AlertTriangle, cls: "bg-amber-500/10 text-amber-600 border-amber-500/20", dot: "bg-amber-500" },
   FULL: { label: "CAPACITY FULL", desc: "Today's intake limit reached", icon: PackageCheck, cls: "bg-rose-500/10 text-rose-600 border-rose-500/20", dot: "bg-rose-500" },
 };
@@ -223,17 +223,22 @@ export default function OfficerCentrePage() {
                 {statusKey === "TEMPORARILY_CLOSED" && <CheckCircle2 className="h-4 w-4 text-amber-500" />}
               </button>
 
-              {/* Inactive */}
+              {/* Close Centre with Red Tint */}
               <button
                 disabled={Boolean(actionLoading) || statusKey === "INACTIVE"}
                 onClick={() => updateStatus("INACTIVE")}
-                className="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-2.5 transition hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/40 disabled:opacity-40"
+                className="w-full flex items-center justify-between rounded-xl border border-rose-500/20 bg-rose-500/10 p-2.5 transition hover:bg-rose-500/15 disabled:opacity-40"
               >
                 <div className="flex items-center gap-2">
-                  <div className="rounded-lg bg-slate-600 p-1.5 text-white"><XCircle className="h-3.5 w-3.5" /></div>
-                  <div className="text-left"><p className="text-[10px] font-black">Close Centre</p><p className="text-[8px] text-slate-400">Shut gate operations</p></div>
+                  <div className="rounded-lg bg-rose-600 p-1.5 text-white">
+                    <XCircle className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black text-rose-700 dark:text-rose-400">Close Centre</p>
+                    <p className="text-[8px] text-rose-500/80">Shut gate operations</p>
+                  </div>
                 </div>
-                {statusKey === "INACTIVE" && <CheckCircle2 className="h-4 w-4 text-slate-500" />}
+                {statusKey === "INACTIVE" && <CheckCircle2 className="h-4 w-4 text-rose-600 dark:text-rose-400" />}
               </button>
             </div>
           </div>

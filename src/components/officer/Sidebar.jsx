@@ -23,7 +23,6 @@ const SECTIONS = [
   {
     title: "Management",
     items: [
-      { label: "Farmers", href: "/officer/farmers", icon: Users },
       { label: "Centre", href: "/officer/centre", icon: MapPin },
       { label: "Slots", href: "/officer/slots", icon: Calendar1 },
     ],
